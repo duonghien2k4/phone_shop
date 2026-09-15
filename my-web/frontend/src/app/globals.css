@@ -197,6 +197,20 @@ a:hover {
   border-color: var(--border-medium);
 }
 
+.installment-term-btn {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.installment-term-btn:hover:not(:disabled),
+.installment-term-btn.active {
+  background-color: #e5e7eb;
+  color: #1f2937;
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+
 /* State Badge Styles */
 .badge {
   display: inline-flex;
@@ -1663,7 +1677,7 @@ a:hover {
 }
 
 .flashsale-container {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 52%, #b91c1c 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 38%, #ffffff 100%);
   border-radius: var(--radius-2xl);
   padding: var(--space-lg);
   box-shadow: 0 16px 40px rgba(185, 28, 28, 0.18);
@@ -1720,7 +1734,7 @@ a:hover {
 .countdown-label {
   font-size: 11px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.8);
+  color: #991b1b;
   letter-spacing: 1px;
 }
 
@@ -1743,7 +1757,7 @@ a:hover {
 }
 
 .time-sep {
-  color: #ffffff;
+  color: #991b1b;
   font-weight: 700;
 }
 
@@ -4339,7 +4353,7 @@ a:hover {
 
 /* Info Pages Layout Styles */
 .info-page-hero {
-  background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
+  background: linear-gradient(135deg, #050505 0%, #1f1f1f 48%, #6b7280 100%);
   color: #ffffff;
   padding: 48px 16px;
   text-align: center;

@@ -94,7 +94,7 @@ export default function TraGopPage() {
                   <button
                     key={m}
                     type="button"
-                    className={`btn ${months === m ? 'btn-primary' : 'btn-secondary'}`}
+                    className={`btn installment-term-btn ${months === m ? 'active' : ''}`}
                     style={{ flex: 1, padding: '8px 0', fontSize: '13px', borderRadius: '8px' }}
                     onClick={() => setMonths(m)}
                   >
