@@ -14,6 +14,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AuthModule } from './modules/auth/auth.module';
 
     DatabaseModule,
     AuthModule,
+    ProductsModule,
 
     // Feature modules will be added here as they are scaffolded:
     // UserModule, ProductModule, CategoryModule,
