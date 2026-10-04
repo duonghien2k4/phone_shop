@@ -9,23 +9,61 @@
 
 'use client';
 
-import { useCartStore as useStore, CartItem } from '@/store/useCartStore';
+import { useEffect, useCallback } from 'react';
+import { useCartStore, CartItem } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cartService } from '@/services/cart.service';
 import { toast } from '@/store/useToastStore';
-import { useCallback } from 'react';
 
 export function useCart() {
   const { user } = useAuthStore();
-  const items = useStore((state) => state.items);
-  const isOpen = useStore((state) => state.isOpen);
-  const addItemStore = useStore((state) => state.addItem);
-  const removeItemStore = useStore((state) => state.removeItem);
-  const updateQuantityStore = useStore((state) => state.updateQuantity);
-  const clearCartStore = useStore((state) => state.clearCart);
-  const setOpen = useStore((state) => state.setOpen);
+  const cartStore = useCartStore();
+  const {
+    items,
+    isOpen,
+    addItem: addItemToStore,
+    removeItem: removeItemFromStore,
+    updateQuantity: updateQuantityInStore,
+    clearCart: clearCartStore,
+    setOpen,
+  } = cartStore;
 
-  // Sync with Backend if logged in
+  useEffect(() => {
+    if (!user) return;
+
+    let mounted = true;
+
+    const loadServerCart = async () => {
+      try {
+        const serverItems = await cartService.getCart();
+        if (!mounted) return;
+
+        if (serverItems.length > 0) {
+          useCartStore.setState({ items: serverItems });
+          return;
+        }
+
+        const localItems = useCartStore.getState().items;
+        if (localItems.length > 0) {
+          for (const item of localItems) {
+            await cartService.addItem({ variantId: item.variantId, quantity: item.quantity });
+          }
+          const synced = await cartService.getCart();
+          useCartStore.setState({ items: synced });
+        }
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn('Cart sync warning:', msg);
+      }
+    };
+
+    void loadServerCart();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
   const syncWithBackend = useCallback(async (action: () => Promise<void>) => {
     try {
       await action();
@@ -37,11 +75,9 @@ export function useCart() {
 
   const addToCart = useCallback(
     async (item: CartItem) => {
-      // Local updates first
-      addItemStore(item);
+      addItemToStore(item);
       toast.success(`Đã thêm ${item.productName} vào giỏ hàng`);
 
-      // Database sync
       if (user) {
         await syncWithBackend(async () => {
           await cartService.addItem({
@@ -51,14 +87,14 @@ export function useCart() {
         });
       }
     },
-    [addItemStore, user, syncWithBackend]
+    [addItemToStore, user, syncWithBackend],
   );
 
   const removeFromCart = useCallback(
     async (variantId: number) => {
       const item = items.find((i) => i.variantId === variantId);
-      removeItemStore(variantId);
-      
+      removeItemFromStore(variantId);
+
       if (item) {
         toast.info(`Đã xóa ${item.productName} khỏi giỏ hàng`);
       }
@@ -69,12 +105,12 @@ export function useCart() {
         });
       }
     },
-    [items, removeItemStore, user, syncWithBackend]
+    [items, removeItemFromStore, user, syncWithBackend],
   );
 
   const updateQuantity = useCallback(
     async (variantId: number, quantity: number) => {
-      updateQuantityStore(variantId, quantity);
+      updateQuantityInStore(variantId, quantity);
 
       if (user) {
         await syncWithBackend(async () => {
@@ -82,7 +118,7 @@ export function useCart() {
         });
       }
     },
-    [updateQuantityStore, user, syncWithBackend]
+    [updateQuantityInStore, user, syncWithBackend],
   );
 
   const clearCart = useCallback(async () => {
@@ -94,7 +130,6 @@ export function useCart() {
     }
   }, [clearCartStore, user, syncWithBackend]);
 
-  // Calculations
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 

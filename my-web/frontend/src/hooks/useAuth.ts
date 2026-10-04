@@ -24,8 +24,20 @@ export function useAuth() {
   // Initialize and check current session
   const initializeAuth = useCallback(async () => {
     if (isInitialized) return;
-    
+
     try {
+      if (typeof window !== 'undefined') {
+        const demoToken = window.localStorage.getItem('phoneshop-demo-token');
+        const demoUser = window.localStorage.getItem('phoneshop-demo-user');
+
+        if (demoToken && demoUser) {
+          setAccessToken(demoToken);
+          setUser(JSON.parse(demoUser));
+          setInitialized(true);
+          return;
+        }
+      }
+
       // Attempt to refresh token silently using shared HTTP-only cookie logic
       const token = await handleRefreshToken();
       if (token) {
@@ -38,7 +50,7 @@ export function useAuth() {
     } finally {
       setInitialized(true);
     }
-  }, [isInitialized, setUser, setInitialized]);
+  }, [isInitialized, setUser, setAccessToken, setInitialized]);
 
   // Run initialization once on app load
   useEffect(() => {

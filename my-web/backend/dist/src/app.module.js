@@ -15,6 +15,8 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const database_module_1 = require("./database/database.module");
 const auth_module_1 = require("./modules/auth/auth.module");
+const cart_module_1 = require("./modules/cart/cart.module");
+const orders_module_1 = require("./modules/orders/orders.module");
 const products_module_1 = require("./modules/products/products.module");
 let AppModule = class AppModule {
 };
@@ -35,6 +37,8 @@ exports.AppModule = AppModule = __decorate([
             ]),
             database_module_1.DatabaseModule,
             auth_module_1.AuthModule,
+            cart_module_1.CartModule,
+            orders_module_1.OrdersModule,
             products_module_1.ProductsModule,
         ],
         controllers: [app_controller_1.AppController],

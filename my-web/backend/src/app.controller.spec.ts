@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return the app welcome message', () => {
+      expect(appController.getHello()).toBe('PHONE_SHOP API is running');
     });
   });
 });

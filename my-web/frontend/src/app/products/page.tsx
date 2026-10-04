@@ -12,7 +12,7 @@
 
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -30,12 +30,9 @@ import ProductDetailModal from '@/components/features/product/ProductDetailModal
 import CompareFloatingBar from '@/components/features/product/CompareFloatingBar';
 import Pagination from '@/components/base/Pagination';
 import { FEATURED_PRODUCTS } from '@/data/mock-products';
+import { productService } from '@/services/product.service';
 import { MockProduct } from '@/types/product';
 
-// Extract only phone products for this dedicated phone catalog
-const ALL_PHONES = FEATURED_PRODUCTS.filter(p => p.category === 'Điện thoại');
-
-const BRANDS = ['Tất cả', ...Array.from(new Set(ALL_PHONES.map(p => p.brand))).filter(Boolean)];
 const ITEMS_PER_PAGE = 12;
 
 const PRICE_RANGES = [
@@ -63,8 +60,25 @@ function ProductsContent() {
   const [userQuery, setUserQuery] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<MockProduct | null>(null);
+  const [products, setProducts] = useState<MockProduct[]>(FEATURED_PRODUCTS);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    productService.getProducts({ limit: 200 }).then((data) => {
+      if (isMounted) {
+        setProducts(data.length ? data : FEATURED_PRODUCTS);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const searchQuery = userQuery !== null ? userQuery : searchFromUrl;
+  const ALL_PHONES = useMemo(() => products.filter((p) => p.category === 'Điện thoại'), [products]);
+  const BRANDS = useMemo(() => ['Tất cả', ...Array.from(new Set(ALL_PHONES.map((p) => p.brand))).filter(Boolean)], [ALL_PHONES]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {

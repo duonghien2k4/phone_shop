@@ -10,7 +10,15 @@ exports.AppService = void 0;
 const common_1 = require("@nestjs/common");
 let AppService = class AppService {
     getHello() {
-        return 'Hello World!';
+        return 'PHONE_SHOP API is running';
+    }
+    getHealth() {
+        return {
+            status: 'ok',
+            app: 'PHONE_SHOP',
+            environment: process.env.NODE_ENV ?? 'development',
+            timestamp: new Date().toISOString(),
+        };
     }
 };
 exports.AppService = AppService;

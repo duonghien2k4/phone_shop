@@ -7,15 +7,38 @@
  */
 
 import { api } from '@/lib/api-client';
+import type { CartItem } from '@/store/useCartStore';
 
 export interface CartItemDto {
   variantId: number;
   quantity: number;
 }
 
+interface CartApiItem {
+  variantId: number;
+  productId: number;
+  productName: string;
+  color: string;
+  storage: string;
+  imageUrl: string | null;
+  price: number;
+  quantity: number;
+}
+
 export const cartService = {
-  getCart: async () => {
-    return api.get<unknown>('/cart');
+  getCart: async (): Promise<CartItem[]> => {
+    const items = await api.get<CartApiItem[]>('/cart');
+
+    return (items ?? []).map((item) => ({
+      variantId: item.variantId,
+      productId: item.productId,
+      productName: item.productName,
+      color: item.color,
+      storage: item.storage,
+      imageUrl: item.imageUrl,
+      price: Number(item.price ?? 0),
+      quantity: Number(item.quantity ?? 1),
+    }));
   },
 
   addItem: async (dto: CartItemDto) => {

@@ -18,6 +18,8 @@ import Header from '@/components/base/Header';
 import Footer from '@/components/base/Footer';
 import SafeImage from '@/components/base/SafeImage';
 import { useCart } from '@/hooks/useCart';
+import { useAuthStore } from '@/store/useAuthStore';
+import { ordersService, toOrderPaymentMethod } from '@/services/orders.service';
 import { formatVND } from '@/utils/format';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
@@ -34,6 +36,7 @@ const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'H�
 function CheckoutForm() {
   const searchParams = useSearchParams();
   const { items, totalPrice, clearCart } = useCart();
+  const user = useAuthStore((state) => state.user);
 
   const fulfillmentFromUrl = searchParams.get('fulfillment') === 'STORE_PICKUP' ? 'STORE_PICKUP' : 'HOME_DELIVERY';
   const voucherCode = searchParams.get('voucher') || '';
@@ -70,7 +73,8 @@ function CheckoutForm() {
   const isDepositMode = paymentMethod === 'DEPOSIT_5';
   const qrTransferAmount = isDepositMode ? depositAmount : finalTotal;
 
-  const handleCompleteOrder = useCallback(() => {
+  const handleCompleteOrder = useCallback(async () => {
+    setIsSubmitting(true);
     const isDeposit = paymentMethod === 'DEPOSIT_5';
     const isPayAtStore = paymentMethod === 'PAY_AT_STORE';
 
@@ -90,7 +94,7 @@ function CheckoutForm() {
       storeAddress: selectedStore,
       appointmentTime: appointmentTime,
       paymentMethod: methodText,
-      paymentStatus: (paymentMethod === 'VIETQR' || isDeposit) ? 'PAID' : 'PENDING',
+      paymentStatus: 'PENDING',
       isDeposit: isDeposit,
       depositAmount: isDeposit ? depositAmount : 0,
       remainingAmount: isDeposit ? remainingAmount : (isPayAtStore ? finalTotal : 0),
@@ -117,19 +121,52 @@ function CheckoutForm() {
         ...(isDeposit ? [{
           id: 'LOG-2',
           timestamp: new Date().toISOString(),
-          title: 'Xác nhận Đặt cọc 5% VietQR',
-          description: `Đã cọc 5% (${depositAmount.toLocaleString('vi-VN')}đ) thành công qua MB Bank.`,
-          type: 'PAYMENT' as const
+          title: 'Chờ xác nhận Đặt cọc 5% VietQR',
+          description: `Đang chờ xác nhận khoản cọc ${depositAmount.toLocaleString('vi-VN')}đ qua MB Bank.`,
+          type: 'SYSTEM' as const
         }] : []),
         ...(paymentMethod === 'VIETQR' ? [{
           id: 'LOG-2',
           timestamp: new Date().toISOString(),
-          title: 'Thanh toán 100% VietQR',
-          description: `Đã thanh toán đủ ${finalTotal.toLocaleString('vi-VN')}đ qua VietQR MB Bank.`,
-          type: 'PAYMENT' as const
+          title: 'Chờ xác nhận thanh toán VietQR',
+          description: `Đang chờ xác nhận khoản thanh toán ${finalTotal.toLocaleString('vi-VN')}đ qua VietQR MB Bank.`,
+          type: 'SYSTEM' as const
         }] : [])
       ]
     };
+
+    try {
+      if (user) {
+        await ordersService.create({
+          shippingFee,
+          discount,
+          voucherCode: voucherCode || null,
+          note: fulfillmentMode === 'STORE_PICKUP'
+            ? `Hẹn đến Showroom: ${appointmentTime}`
+            : 'Đơn hàng mới từ website',
+          paymentMethod: toOrderPaymentMethod(paymentMethod),
+          shippingAddress: {
+            name: fullName,
+            phone,
+            address: fulfillmentMode === 'STORE_PICKUP'
+              ? selectedStore
+              : address,
+            city,
+            fulfillmentMode,
+            storeAddress: fulfillmentMode === 'STORE_PICKUP' ? selectedStore : undefined,
+            appointmentTime: fulfillmentMode === 'STORE_PICKUP' ? appointmentTime : undefined,
+          },
+        });
+      }
+
+    } catch (e) {
+      console.error('Failed to create order:', e);
+      const message = e instanceof Error ? e.message : 'Không thể tạo đơn hàng';
+      toast.error(message);
+      setIsSubmitting(false);
+      setShowQrModal(false);
+      return;
+    }
 
     try {
       const existing = localStorage.getItem(APP_CONFIG.STORAGE.ORDERS_KEY);
@@ -137,15 +174,15 @@ function CheckoutForm() {
       list.unshift(newOrder);
       localStorage.setItem(APP_CONFIG.STORAGE.ORDERS_KEY, JSON.stringify(list));
     } catch (e) {
-      console.error('Failed to save order to localStorage:', e);
+      console.warn('Could not cache order in localStorage:', e);
     }
 
     setIsSubmitting(false);
     setShowQrModal(false);
     setIsSuccess(true);
     clearCart();
-    toast.success(isDeposit ? 'Đã đặt cọc 5% giữ máy thành công!' : 'Đơn hàng đã được đặt thành công!');
-  }, [clearCart, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, items]);
+    toast.success(isDeposit ? 'Đã ghi nhận đơn hàng, đang chờ xác nhận thanh toán.' : 'Đơn hàng đã được đặt thành công!');
+  }, [clearCart, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, items, user]);
 
   // Timer for automatic QR confirmation
   useEffect(() => {
@@ -208,11 +245,11 @@ function CheckoutForm() {
           <CheckCircle2 size={36} />
         </div>
         <h1 className="cart-header-title" style={{ margin: 0 }}>
-          {paymentMethod === 'DEPOSIT_5' ? 'ĐẶT CỌC 5% GIỮ MÁY THÀNH CÔNG!' : LABELS.CHECKOUT.ORDER_SUCCESS_TITLE}
+          {paymentMethod === 'DEPOSIT_5' ? 'ĐÃ GHI NHẬN YÊU CẦU ĐẶT CỌC' : LABELS.CHECKOUT.ORDER_SUCCESS_TITLE}
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '420px', margin: '0 auto' }}>
           {paymentMethod === 'DEPOSIT_5' 
-            ? 'Showroom đã giữ máy đúng màu sắc và phiên bản cho bạn trong 48h. Vui lòng đến Showroom để trải nghiệm và thanh toán số tiền còn lại.'
+            ? 'Đơn hàng đang chờ xác nhận thanh toán. Showroom sẽ giữ máy và hướng dẫn thanh toán sau khi khoản cọc được xác nhận.'
             : LABELS.CHECKOUT.ORDER_SUCCESS_DESC}
         </p>
 
