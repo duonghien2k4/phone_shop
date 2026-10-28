@@ -47,6 +47,7 @@ import { toast } from '@/store/useToastStore';
 import { APP_CONFIG } from '@/constants/config';
 import { MockProduct } from '@/types/product';
 import { Order, OrderStatus } from '@/types/order';
+import { useRequireClerkAuth } from '@/hooks/useRequireClerkAuth';
 
 // Demo Mock Orders Dataset
 const SAMPLE_ORDERS: Order[] = [
@@ -408,7 +409,7 @@ function OrderTrackContent() {
           
           {/* Breadcrumb & Header */}
           <nav style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', gap: '6px' }}>
-            <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Trang chủ</Link>
+            <Link href="/shop" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Cửa hàng</Link>
             <span>/</span>
             <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Tra cứu đơn hàng</span>
           </nav>
@@ -812,7 +813,7 @@ function OrderTrackContent() {
                   </div>
 
                   <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>Tổng cộng thanh toán:</span>
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>Tổng cộng:</span>
                     <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#6d28d9' }}>
                       {(selectedOrder.items.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0) - selectedOrder.discount).toLocaleString('vi-VN')}đ
                     </span>
@@ -916,6 +917,9 @@ function OrderTrackContent() {
 }
 
 export default function OrderTrackPage() {
+  const canRender = useRequireClerkAuth();
+  if (!canRender) return null;
+
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Đang tải thông tin đơn hàng...</div>}>
       <OrderTrackContent />

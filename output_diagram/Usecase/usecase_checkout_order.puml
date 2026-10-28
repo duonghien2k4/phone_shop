@@ -1,0 +1,48 @@
+@startuml
+' Mục đích: Mô tả nghiệp vụ Đặt hàng, Áp dụng Voucher và Quản lý đơn hàng của Khách hàng
+' Nguồn tham chiếu:
+' - Frontend Page & Components: my-web/frontend/src/app/checkout/page.tsx, my-web/frontend/src/app/orders/page.tsx
+' - Frontend Service: my-web/frontend/src/services/orders.service.ts
+' - Backend Controller: my-web/backend/src/modules/orders/orders.controller.ts
+' - Backend Service: my-web/backend/src/modules/orders/orders.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Order, OrderItem, Voucher, UserVoucher, Payment)
+
+title Sơ đồ Use Case - Đặt hàng và Quản lý Đơn hàng (Khách hàng)
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as Customer
+
+rectangle "Phân hệ Đặt hàng & Đơn hàng" {
+    usecase "Khởi tạo Đặt hàng (Checkout)" as UC_Checkout
+    usecase "Nhập thông tin giao hàng & nhận tại showroom" as UC_InputShipping
+    usecase "Áp dụng Mã giảm giá (Voucher)" as UC_ApplyVoucher
+    usecase "Chọn phương thức thanh toán (COD / Chuyển khoản)" as UC_SelectPayment
+    usecase "Xác nhận tạo đơn hàng" as UC_ConfirmOrder
+    usecase "Xác thực tính hợp lệ giỏ hàng & voucher trong Transaction" as UC_ValidateTransaction
+    usecase "Xem danh sách đơn hàng đã đặt" as UC_ListMyOrders
+    usecase "Xem chi tiết tiến trình đơn hàng" as UC_ViewOrderDetail
+    usecase "Xác thực danh tính" as UC_AuthGuard
+}
+
+Customer --> UC_Checkout
+Customer --> UC_InputShipping
+Customer --> UC_ApplyVoucher
+Customer --> UC_SelectPayment
+Customer --> UC_ConfirmOrder
+Customer --> UC_ListMyOrders
+Customer --> UC_ViewOrderDetail
+
+UC_Checkout ..> UC_AuthGuard : <<include>>
+UC_ConfirmOrder ..> UC_ValidateTransaction : <<include>>
+UC_ConfirmOrder ..> UC_InputShipping : <<include>>
+UC_ConfirmOrder ..> UC_SelectPayment : <<include>>
+UC_ApplyVoucher ..> UC_Checkout : <<extend>>
+UC_ListMyOrders ..> UC_AuthGuard : <<include>>
+UC_ViewOrderDetail ..> UC_AuthGuard : <<include>>
+
+@enduml
+

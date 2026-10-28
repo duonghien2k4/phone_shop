@@ -1,0 +1,72 @@
+@startuml
+' Mục đích: Mô tả các nghiệp vụ Quản trị hệ thống dành cho Quản trị viên và Nhân viên
+' Nguồn tham chiếu:
+' - Frontend Pages & Tabs: my-web/frontend/src/app/admin/page.tsx, my-web/frontend/src/components/admin/
+' - Frontend Service: my-web/frontend/src/services/admin.service.ts
+' - Backend Controller: my-web/backend/src/modules/admin/admin.controller.ts
+' - Backend Service: my-web/backend/src/modules/admin/admin.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Product, ProductVariant, Brand, Category, Inventory, Order, Voucher, Review, FinancePartner)
+
+title Sơ đồ Use Case - Quản trị Hệ thống (Admin & Staff)
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Quản trị viên / Nhân viên" as Admin
+
+rectangle "Phân hệ Quản trị Hệ thống (Admin Portal)" {
+    usecase "Xem Dashboard thống kê chỉ số kinh doanh" as UC_Dashboard
+
+    package "Kinh doanh & Sản phẩm" {
+        usecase "Quản lý Sản phẩm (Thêm/Sửa/Xóa/Ẩn)" as UC_ManageProduct
+        usecase "Quản lý Biến thể (Màu sắc, Dung lượng, Giá)" as UC_ManageVariant
+        usecase "Quản lý Thương hiệu & Danh mục" as UC_ManageBrandCat
+        usecase "Quản lý Tồn kho & Cập nhật số lượng" as UC_ManageInventory
+    }
+
+    package "Đơn hàng & Thanh toán" {
+        usecase "Xem danh sách và lọc đơn hàng" as UC_ManageOrders
+        usecase "Cập nhật trạng thái Đơn hàng & Thanh toán" as UC_UpdateOrderStatus
+        usecase "Quản lý giao dịch thanh toán" as UC_ManagePayments
+    }
+
+    package "Marketing & Chăm sóc khách hàng" {
+        usecase "Quản lý Mã giảm giá (Voucher)" as UC_ManageVouchers
+        usecase "Kiểm duyệt & Ẩn/Hiện Đánh giá sản phẩm" as UC_ManageReviews
+    }
+
+    package "Dịch vụ Điện thoại" {
+        usecase "Cấu hình Đối tác trả góp" as UC_ManageFinancePartners
+        usecase "Quản lý Yêu cầu Thu cũ đổi mới" as UC_ManageTradeIn
+        usecase "Quản lý Hồ sơ Bảo hành điện tử" as UC_ManageWarranty
+    }
+
+    usecase "Kiểm tra quyền truy cập (RolesGuard: ADMIN/STAFF)" as UC_RoleGuard
+}
+
+Admin --> UC_Dashboard
+Admin --> UC_ManageProduct
+Admin --> UC_ManageVariant
+Admin --> UC_ManageBrandCat
+Admin --> UC_ManageInventory
+Admin --> UC_ManageOrders
+Admin --> UC_UpdateOrderStatus
+Admin --> UC_ManagePayments
+Admin --> UC_ManageVouchers
+Admin --> UC_ManageReviews
+Admin --> UC_ManageFinancePartners
+Admin --> UC_ManageTradeIn
+Admin --> UC_ManageWarranty
+
+UC_Dashboard ..> UC_RoleGuard : <<include>>
+UC_ManageProduct ..> UC_RoleGuard : <<include>>
+UC_ManageVariant ..> UC_RoleGuard : <<include>>
+UC_ManageInventory ..> UC_RoleGuard : <<include>>
+UC_ManageOrders ..> UC_RoleGuard : <<include>>
+UC_UpdateOrderStatus ..> UC_RoleGuard : <<include>>
+UC_ManageVouchers ..> UC_RoleGuard : <<include>>
+
+@enduml
+

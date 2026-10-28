@@ -5,18 +5,6 @@ export declare class OrdersController {
     private readonly ordersService;
     constructor(ordersService: OrdersService);
     findMyOrders(user: UserPayload): Promise<({
-        payment: {
-            id: number;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.PaymentStatus;
-            orderId: number;
-            method: import("@prisma/client").$Enums.PaymentMethod;
-            amount: import("@prisma/client-runtime-utils").Decimal;
-            transactionId: string | null;
-            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
-            paidAt: Date | null;
-        } | null;
         items: {
             id: number;
             createdAt: Date;
@@ -24,42 +12,42 @@ export declare class OrdersController {
             color: string;
             storage: string;
             imageUrl: string | null;
-            variantId: number;
-            quantity: number;
-            productName: string;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
+            productName: string;
+            quantity: number;
+            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            variantId: number;
             orderId: number;
         }[];
+        payment: {
+            id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            status: import("@prisma/client").$Enums.PaymentStatus;
+            method: import("@prisma/client").$Enums.PaymentMethod;
+            amount: import("@prisma/client-runtime-utils").Decimal;
+            transactionId: string | null;
+            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
+            paidAt: Date | null;
+            orderId: number;
+        } | null;
     } & {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        discount: import("@prisma/client-runtime-utils").Decimal;
         status: import("@prisma/client").$Enums.OrderStatus;
-        userId: number;
+        discount: import("@prisma/client-runtime-utils").Decimal;
+        subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
+        total: import("@prisma/client-runtime-utils").Decimal;
         voucherCode: string | null;
+        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        userId: number;
     })[]>;
     findById(user: UserPayload, orderId: number): Promise<{
-        payment: {
-            id: number;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.PaymentStatus;
-            orderId: number;
-            method: import("@prisma/client").$Enums.PaymentMethod;
-            amount: import("@prisma/client-runtime-utils").Decimal;
-            transactionId: string | null;
-            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
-            paidAt: Date | null;
-        } | null;
         items: {
             id: number;
             createdAt: Date;
@@ -67,28 +55,40 @@ export declare class OrdersController {
             color: string;
             storage: string;
             imageUrl: string | null;
-            variantId: number;
-            quantity: number;
-            productName: string;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
+            productName: string;
+            quantity: number;
+            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            variantId: number;
             orderId: number;
         }[];
+        payment: {
+            id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            status: import("@prisma/client").$Enums.PaymentStatus;
+            method: import("@prisma/client").$Enums.PaymentMethod;
+            amount: import("@prisma/client-runtime-utils").Decimal;
+            transactionId: string | null;
+            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
+            paidAt: Date | null;
+            orderId: number;
+        } | null;
     } & {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        discount: import("@prisma/client-runtime-utils").Decimal;
         status: import("@prisma/client").$Enums.OrderStatus;
-        userId: number;
+        discount: import("@prisma/client-runtime-utils").Decimal;
+        subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
+        total: import("@prisma/client-runtime-utils").Decimal;
         voucherCode: string | null;
+        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        userId: number;
     }>;
     createOrder(user: UserPayload, dto: CreateOrderDto): Promise<{
         items: {
@@ -98,27 +98,27 @@ export declare class OrdersController {
             color: string;
             storage: string;
             imageUrl: string | null;
-            variantId: number;
-            quantity: number;
-            productName: string;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
+            productName: string;
+            quantity: number;
+            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            variantId: number;
             orderId: number;
         }[];
     } & {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        discount: import("@prisma/client-runtime-utils").Decimal;
         status: import("@prisma/client").$Enums.OrderStatus;
-        userId: number;
+        discount: import("@prisma/client-runtime-utils").Decimal;
+        subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
+        total: import("@prisma/client-runtime-utils").Decimal;
         voucherCode: string | null;
+        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        userId: number;
     }>;
 }

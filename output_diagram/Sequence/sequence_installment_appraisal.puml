@@ -1,0 +1,157 @@
+@startuml
+' Mục đích: Mô tả quy trình Thẩm định Hồ sơ Trả góp của Nhân viên/Admin (State Machine & Audit Trail)
+' Nguồn tham chiếu:
+' - Frontend Component: my-web/frontend/src/components/admin/tabs/PhoneServicesTab.tsx
+' - Frontend Service: my-web/frontend/src/services/admin.service.ts
+' - Backend Controller: my-web/backend/src/modules/installment/installment-admin.controller.ts
+' - Backend Service: my-web/backend/src/modules/installment/installment.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (InstallmentApplication, ApplicationStatusHistory, Order)
+
+title Sơ đồ Trình tự - Thẩm định Hồ sơ Trả góp (Admin Appraisal Flow)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Nhân viên / Admin" as Staff
+boundary "Giao diện Quản trị Trả góp\n(PhoneServicesTab)" as UI
+control "AdminService\n(Frontend)" as ClientService
+boundary "InstallmentAdminController\n(Backend)" as Controller
+control "InstallmentService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma Transaction)" as DB
+
+== Bước 1: Tiếp nhận Hồ sơ thẩm định ==
+Staff -> UI: Mở chi tiết hồ sơ (trạng thái SUBMITTED), bấm "Nhận xử lý"
+activate UI
+UI -> ClientService: claimApplication(id)
+activate ClientService
+ClientService -> Controller: POST /api/admin/installment/applications/:id/claim
+activate Controller
+Controller -> BackendService: claimApplication(id, staffId)
+activate BackendService
+
+BackendService -> DB: tx.installmentApplication.findUnique({ where: { id } })
+activate DB
+DB --> BackendService: Hồ sơ hiện tại (status: SUBMITTED)
+deactivate DB
+
+BackendService -> DB: tx.installmentApplication.update({\n  where: { id },\n  data: { status: 'UNDER_REVIEW', reviewerId: staffId, reviewedAt: now }\n})\ntx.applicationStatusHistory.create({\n  data: { fromStatus: 'SUBMITTED', toStatus: 'UNDER_REVIEW', action: 'STAFF_CLAIM' }\n})
+activate DB
+DB --> BackendService: Cập nhật thành công
+deactivate DB
+
+BackendService --> Controller: Hồ sơ cập nhật (UNDER_REVIEW)
+deactivate BackendService
+Controller --> ClientService: HTTP 200 OK
+deactivate Controller
+ClientService --> UI: Cập nhật giao diện thẩm định
+deactivate ClientService
+UI --> Staff: Hiển thị trạng thái "Đang kiểm tra hồ sơ"
+deactivate UI
+
+== Bước 2: Xử lý Thẩm định nghiệp vụ ==
+alt Trường hợp 1: Hồ sơ thiếu thông tin (CCCD mờ, thiếu SĐT tham chiếu...)
+    Staff -> UI: Nhập ghi chú yêu cầu, bấm "Yêu cầu bổ sung"
+    activate UI
+    UI -> ClientService: requestInfo(id, { notes })
+    activate ClientService
+    ClientService -> Controller: POST /api/admin/installment/applications/:id/request-info
+    activate Controller
+    Controller -> BackendService: requestInfo(id, dto, staffId)
+    activate BackendService
+    BackendService -> DB: tx.installmentApplication.update(status: 'NEED_MORE_INFO')\ntx.applicationStatusHistory.create(action: 'REQUEST_INFO')
+    activate DB
+    DB --> BackendService: Lưu thành công
+    deactivate DB
+    BackendService --> Controller: Hồ sơ cập nhật (NEED_MORE_INFO)
+    deactivate BackendService
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+    ClientService --> UI: Cập nhật trạng thái
+    deactivate ClientService
+    UI --> Staff: Hồ sơ chuyển sang "Cần bổ sung"
+    deactivate UI
+
+else Trường hợp 2: Hồ sơ hợp lệ, chuyển sang đối tác tài chính
+    Staff -> UI: Bấm "Chuyển đối tác thẩm định"
+    activate UI
+    UI -> ClientService: submitToPartner(id)
+    activate ClientService
+    ClientService -> Controller: POST /api/admin/installment/applications/:id/submit-to-partner
+    activate Controller
+    Controller -> BackendService: submitToPartner(id, staffId)
+    activate BackendService
+    BackendService -> DB: tx.installmentApplication.update(status: 'PARTNER_REVIEW')\ntx.applicationStatusHistory.create(action: 'SUBMIT_TO_PARTNER')
+    activate DB
+    DB --> BackendService: Cập nhật thành công
+    deactivate DB
+    BackendService --> Controller: Hồ sơ cập nhật (PARTNER_REVIEW)
+    deactivate BackendService
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+    ClientService --> UI: Cập nhật trạng thái
+    deactivate ClientService
+    UI --> Staff: Hồ sơ chuyển sang "Chờ kết quả đối tác"
+    deactivate UI
+
+    == Bước 3: Ghi nhận quyết định phê duyệt / từ chối ==
+    Staff -> UI: Nhận kết quả từ đối tác, bấm "Phê duyệt" hoặc "Từ chối"
+    activate UI
+    UI -> ClientService: recordDecision(id, { decision: 'APPROVED' | 'REJECTED', reason, referenceCode })
+    activate ClientService
+    ClientService -> Controller: POST /api/admin/installment/applications/:id/record-decision
+    activate Controller
+    Controller -> BackendService: recordDecision(id, dto, staffId)
+    activate BackendService
+    BackendService -> DB: tx.installmentApplication.update({\n  data: { status: dto.decision, decisionReason, referenceCode, decidedAt: now }\n})\ntx.applicationStatusHistory.create(action: 'RECORD_DECISION')
+    activate DB
+    DB --> BackendService: Cập nhật quyết định cuối cùng
+    deactivate DB
+    BackendService --> Controller: Hồ sơ đã chốt quyết định
+    deactivate BackendService
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+    ClientService --> UI: Cập nhật trạng thái kết thúc
+    deactivate ClientService
+    UI --> Staff: Hiển thị kết quả "Đã duyệt" hoặc "Bị từ chối"
+    deactivate UI
+end
+
+== Bước 4: Liên kết đơn hàng (Khi hồ sơ đã APPROVED) ==
+opt Liên kết đơn hàng hợp lệ
+    Staff -> UI: Nhập mã đơn hàng hợp lệ, bấm "Liên kết đơn hàng"
+    activate UI
+    UI -> ClientService: linkOrder(id, orderId)
+    activate ClientService
+    ClientService -> Controller: POST /api/admin/installment/applications/:id/link-order
+    activate Controller
+    Controller -> BackendService: linkOrder(id, orderId, staffId)
+    activate BackendService
+    BackendService -> DB: order.findUnique({ where: { id: orderId } })
+    activate DB
+    DB --> BackendService: Order entity
+    deactivate DB
+
+    alt Đơn hàng bị hủy hoặc không tồn tại
+        BackendService --> Controller: throw BadRequestException('Đơn hàng không hợp lệ')
+        Controller --> ClientService: HTTP 400 Bad Request
+        ClientService --> UI: Báo lỗi đơn hàng
+        UI --> Staff: Thông báo không thể liên kết
+    else Đơn hàng hợp lệ
+        BackendService -> DB: tx.installmentApplication.update(orderId)\ntx.applicationStatusHistory.create(action: 'LINK_ORDER')
+        activate DB
+        DB --> BackendService: Liên kết thành công
+        deactivate DB
+        BackendService --> Controller: Hồ sơ đã liên kết
+        deactivate BackendService
+        Controller --> ClientService: HTTP 200 OK
+        deactivate Controller
+        ClientService --> UI: Thành công
+        deactivate ClientService
+        UI --> Staff: Đơn hàng đã được liên kết với hồ sơ trả góp
+    end
+    deactivate UI
+end
+
+@enduml
+

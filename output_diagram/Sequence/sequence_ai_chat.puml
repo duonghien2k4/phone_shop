@@ -1,0 +1,70 @@
+@startuml
+' Mục đích: Mô tả trình tự Trò chuyện và Tư vấn thông minh cùng Trợ lý Mini Sóc AI
+' Nguồn tham chiếu:
+' - Frontend Component: my-web/frontend/src/components/features/ai/MiniSocChatbox.tsx
+' - Next.js Route Handler: my-web/frontend/src/app/api/chat-ai/route.ts
+' - External Service: OpenAI Chat Completion API (https://api.openai.com/v1/chat/completions)
+' - Constants: my-web/frontend/src/constants/config.ts
+
+title Sơ đồ Trình tự - Tư vấn Khách hàng qua Trợ lý Mini Sóc AI (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as User
+boundary "Hộp thoại Mini Sóc\n(MiniSocChatbox)" as Box
+boundary "Chat AI Route Handler\n(/api/chat-ai)" as Route
+control "OpenAI GPT-4o-mini API\n(External)" as OpenAI
+control "Fallback Intent Classifier\n(Rule Engine)" as RuleEngine
+
+User -> Box: Nhập tin nhắn câu hỏi (VD: "Có trả góp 0% qua CCCD không?"), nhấn Gửi
+activate Box
+
+Box -> Box: Thêm tin nhắn của User vào danh sách hiển thị\nBật trạng thái đang trả lời (isTyping = true)
+
+Box -> Route: POST /api/chat-ai\nBody: { message: "Có trả góp 0% qua CCCD không?" }
+activate Route
+
+Route -> Route: Kiểm tra input (message tồn tại và là chuỗi)
+alt Input rỗng hoặc không hợp lệ
+    Route --> Box: HTTP 400 Bad Request { error: "Missing message content" }
+    Box --> User: Hiển thị lỗi nhập liệu
+else Input hợp lệ
+    Route -> Route: Kiểm tra biến môi trường OPENAI_API_KEY
+
+    alt OPENAI_API_KEY tồn tại
+        Route -> OpenAI: POST https://api.openai.com/v1/chat/completions\nHeaders: Bearer <OPENAI_API_KEY>\nPayload: { model: 'gpt-4o-mini', messages: [System, User] }
+        activate OpenAI
+
+        alt OpenAI phản hồi thành công (HTTP 200 OK)
+            OpenAI --> Route: Response JSON (data.choices[0].message.content)
+            deactivate OpenAI
+            Route --> Box: HTTP 200 OK\n{ reply: data.choices[0].message.content }
+        else OpenAI lỗi mạng / Hết quota / API key sai
+            OpenAI --> Route: HTTP Error (4xx / 5xx)
+            deactivate OpenAI
+            Route -> RuleEngine: Chuyển hướng sang Engine suy luận dự phòng (Fallback)
+            activate RuleEngine
+            RuleEngine -> RuleEngine: Phân loại ý định từ khóa:\n'trả góp', 'cccd', 'lãi suất' -> Intent Trả góp 0%
+            RuleEngine --> Route: Nội dung tư vấn chính sách trả góp Sóc Mobile
+            deactivate RuleEngine
+            Route --> Box: HTTP 200 OK\n{ reply: nội dung fallback }
+        end
+    else Không cấu hình OPENAI_API_KEY (Chế độ Offline / Fallback)
+        Route -> RuleEngine: Kích hoạt Fallback Intent Engine
+        activate RuleEngine
+        RuleEngine -> RuleEngine: Quét đa tầng ý định:\n- Địa chỉ showroom (180 Nguyễn Trãi)\n- Thu cũ đổi mới trợ giá 1M, cọc 5%\n- Gaming, Camera, Pin, Trả góp, Bảo hành IMEI, Voucher
+        RuleEngine --> Route: Chuỗi Markdown câu trả lời phù hợp
+        deactivate RuleEngine
+        Route --> Box: HTTP 200 OK\n{ reply: markdown text }
+    end
+    deactivate Route
+
+    Box -> Box: Thêm câu trả lời vào danh sách tin nhắn\nTắt trạng thái typing (isTyping = false)
+    Box --> User: Render câu trả lời dạng định dạng Markdown đẹp mắt
+end
+deactivate Box
+
+@enduml
+

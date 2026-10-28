@@ -1,0 +1,90 @@
+@startuml
+' Mục đích: Mô tả trình tự Quản trị viên Thêm mới Sản phẩm, Biến thể và Khởi tạo Tồn kho
+' Nguồn tham chiếu:
+' - Frontend Components: my-web/frontend/src/components/admin/tabs/ProductsTab.tsx, InventoryTab.tsx
+' - Frontend Service: my-web/frontend/src/services/admin.service.ts
+' - Backend Controller: my-web/backend/src/modules/admin/admin.controller.ts (POST /api/admin/products, POST /api/admin/products/:id/variants)
+' - Backend Service: my-web/backend/src/modules/admin/admin.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Product, ProductVariant, Inventory)
+
+title Sơ đồ Trình tự - Quản lý Sản phẩm và Biến thể Tồn kho (Admin Sequence)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Quản trị viên / Nhân viên" as Admin
+boundary "Giao diện Sản phẩm\n(ProductsTab)" as UI
+control "AdminService\n(Frontend)" as ClientService
+boundary "AdminController\n(Backend)" as Controller
+control "AdminService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma)" as DB
+
+== Bước 1: Thêm mới Sản phẩm gốc ==
+Admin -> UI: Nhập tên, slug, thương hiệu, danh mục, thông số kỹ thuật, giá gốc, nhấn "Tạo sản phẩm"
+activate UI
+
+UI -> ClientService: createProduct(productData)
+activate ClientService
+
+ClientService -> Controller: POST /api/admin/products\nHeaders: Bearer <Token>\nBody: { name, slug, brandId, categoryId, specs, basePrice... }
+activate Controller
+
+Controller -> BackendService: createProduct(data)
+activate BackendService
+
+BackendService -> DB: product.create({ data: productData })
+activate DB
+DB --> BackendService: Bản ghi Product mới
+deactivate DB
+
+BackendService --> Controller: Product Object
+deactivate BackendService
+
+Controller --> ClientService: HTTP 201 Created\n{ success: true, data: newProduct }
+deactivate Controller
+
+ClientService --> UI: Thông báo tạo thành công
+deactivate ClientService
+
+UI --> Admin: Hiển thị sản phẩm mới trong danh sách, mở hộp thoại thêm biến thể
+
+== Bước 2: Thêm Biến thể (Màu sắc, Bộ nhớ) & Khởi tạo Tồn kho ==
+Admin -> UI: Nhập màu (VD: "Titan Tự Nhiên"), bộ nhớ ("256GB"), SKU, giá bán, số lượng nhập kho (VD: 50)
+Admin -> UI: Bấm "Lưu biến thể"
+
+UI -> ClientService: createVariant(productId, variantData)
+activate ClientService
+
+ClientService -> Controller: POST /api/admin/products/:id/variants\nBody: { color, storage, sku, price, stock: 50 }
+activate Controller
+
+Controller -> BackendService: createVariant(productId, data)
+activate BackendService
+
+BackendService -> DB: Bắt đầu prisma.$transaction()
+activate DB
+
+BackendService -> DB: tx.productVariant.create({\n  data: { productId, color, storage, sku, price }\n})
+DB --> BackendService: Bản ghi ProductVariant mới
+
+BackendService -> DB: tx.inventory.create({\n  data: { variantId: newVariant.id, stock: 50, reserved: 0, status: 'IN_STOCK' }\n})
+DB --> BackendService: Bản ghi Inventory liên kết thành công
+
+BackendService -> DB: Commit $transaction
+deactivate DB
+
+BackendService --> Controller: Variant và Inventory entity
+deactivate BackendService
+
+Controller --> ClientService: HTTP 201 Created\n{ success: true, data: variant }
+deactivate Controller
+
+ClientService --> UI: Cập nhật biến thể thành công
+deactivate ClientService
+
+UI --> Admin: Hiển thị cấu hình biến thể và số lượng tồn kho 50 chiếc
+deactivate UI
+
+@enduml
+

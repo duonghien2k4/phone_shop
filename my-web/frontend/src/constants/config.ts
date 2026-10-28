@@ -43,6 +43,7 @@ export const APP_CONFIG = {
   // Route Paths
   ROUTES: {
     HOME: '/',
+    SHOP: '/shop',
     PRODUCTS: '/products',
     VOUCHERS: '/vouchers',
     CART: '/cart',

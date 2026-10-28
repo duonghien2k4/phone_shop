@@ -9,15 +9,22 @@
 
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useCartStore, CartItem } from '@/store/useCartStore';
-import { useAuthStore } from '@/store/useAuthStore';
 import { cartService } from '@/services/cart.service';
 import { toast } from '@/store/useToastStore';
 
+const CLOCK_SKEW_ERRORS = ['token-not-active-yet', 'token_not_active_yet', 'not-active-yet'];
+
+function isClockSkewError(msg: string): boolean {
+  return CLOCK_SKEW_ERRORS.some((key) => msg.toLowerCase().includes(key));
+}
+
 export function useCart() {
-  const { user } = useAuthStore();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const cartStore = useCartStore();
+  const syncAttempts = useRef(0);
   const {
     items,
     isOpen,
@@ -29,14 +36,27 @@ export function useCart() {
   } = cartStore;
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      useCartStore.setState({ items: [] });
+      syncAttempts.current = 0;
+      return;
+    }
 
     let mounted = true;
 
-    const loadServerCart = async () => {
+    const loadServerCart = async (retryDelay = 0) => {
+      if (retryDelay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      }
+      if (!mounted) return;
+
       try {
         const serverItems = await cartService.getCart();
         if (!mounted) return;
+
+        syncAttempts.current = 0;
 
         if (serverItems.length > 0) {
           useCartStore.setState({ items: serverItems });
@@ -49,11 +69,23 @@ export function useCart() {
             await cartService.addItem({ variantId: item.variantId, quantity: item.quantity });
           }
           const synced = await cartService.getCart();
-          useCartStore.setState({ items: synced });
+          if (mounted) useCartStore.setState({ items: synced });
         }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.warn('Cart sync warning:', msg);
+
+        if (isClockSkewError(msg) && syncAttempts.current < 3) {
+          // Token not yet active — retry with exponential backoff (2s, 4s, 8s)
+          syncAttempts.current += 1;
+          const delay = 2000 * syncAttempts.current;
+          void loadServerCart(delay);
+          return;
+        }
+
+        // Only warn once per session for non-clock-skew errors
+        if (!isClockSkewError(msg)) {
+          console.warn('Cart sync warning:', msg);
+        }
       }
     };
 
@@ -62,14 +94,16 @@ export function useCart() {
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [isLoaded, isSignedIn]);
 
   const syncWithBackend = useCallback(async (action: () => Promise<void>) => {
     try {
       await action();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn('Backend sync warning:', msg);
+      if (!isClockSkewError(msg)) {
+        console.warn('Backend sync warning:', msg);
+      }
     }
   }, []);
 
@@ -78,7 +112,7 @@ export function useCart() {
       addItemToStore(item);
       toast.success(`Đã thêm ${item.productName} vào giỏ hàng`);
 
-      if (user) {
+      if (isSignedIn) {
         await syncWithBackend(async () => {
           await cartService.addItem({
             variantId: item.variantId,
@@ -87,7 +121,7 @@ export function useCart() {
         });
       }
     },
-    [addItemToStore, user, syncWithBackend],
+    [addItemToStore, isSignedIn, syncWithBackend],
   );
 
   const removeFromCart = useCallback(
@@ -99,36 +133,36 @@ export function useCart() {
         toast.info(`Đã xóa ${item.productName} khỏi giỏ hàng`);
       }
 
-      if (user) {
+      if (isSignedIn) {
         await syncWithBackend(async () => {
           await cartService.removeItem(variantId);
         });
       }
     },
-    [items, removeItemFromStore, user, syncWithBackend],
+    [items, removeItemFromStore, isSignedIn, syncWithBackend],
   );
 
   const updateQuantity = useCallback(
     async (variantId: number, quantity: number) => {
       updateQuantityInStore(variantId, quantity);
 
-      if (user) {
+      if (isSignedIn) {
         await syncWithBackend(async () => {
           await cartService.updateQuantity(variantId, quantity);
         });
       }
     },
-    [updateQuantityInStore, user, syncWithBackend],
+    [updateQuantityInStore, isSignedIn, syncWithBackend],
   );
 
   const clearCart = useCallback(async () => {
     clearCartStore();
-    if (user) {
+    if (isSignedIn) {
       await syncWithBackend(async () => {
         await cartService.clearCart();
       });
     }
-  }, [clearCartStore, user, syncWithBackend]);
+  }, [clearCartStore, isSignedIn, syncWithBackend]);
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = items.reduce((acc, item) => acc + item.price * item.quantity, 0);

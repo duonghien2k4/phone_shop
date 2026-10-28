@@ -11,6 +11,7 @@
 
 import React, { useState } from 'react';
 import { APP_CONFIG } from '@/constants/config';
+import { MessageCircle } from 'lucide-react';
 
 export default function FacebookChatWidget() {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -79,15 +80,7 @@ export default function FacebookChatWidget() {
           e.currentTarget.style.transform = 'scale(1.0)';
         }}
       >
-        {/* Official Facebook Messenger SVG Icon */}
-        <svg 
-          width="28" 
-          height="28" 
-          viewBox="0 0 24 24" 
-          fill="#ffffff"
-        >
-          <path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.91 1.45 5.517 3.717 7.234V22l3.39-1.862c.93.257 1.916.398 2.893.398 5.523 0 10-4.145 10-9.258C22 6.145 17.523 2 12 2zm1.066 12.433l-2.548-2.72-4.97 2.72 5.467-5.8 2.607 2.72 4.91-2.72-5.466 5.8z" />
-        </svg>
+        <MessageCircle size={28} color="#ffffff" aria-hidden="true" />
 
         {/* Online Pulse Badge */}
         <span

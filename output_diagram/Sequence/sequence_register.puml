@@ -1,0 +1,77 @@
+@startuml
+' Mục đích: Mô tả trình tự đăng ký tài khoản người dùng
+' Nguồn tham chiếu:
+' - Frontend: my-web/frontend/src/app/register/page.tsx, my-web/frontend/src/services/auth.service.ts
+' - Backend Controller: my-web/backend/src/modules/auth/auth.controller.ts (POST /api/auth/register)
+' - Backend Service: my-web/backend/src/modules/auth/auth.service.ts
+' - Database: my-web/backend/prisma/schema.prisma (Model User, UserProfile, Cart)
+' - Helper: my-web/backend/src/common/utils/bcrypt.helper.ts
+
+title Sơ đồ Trình tự - Đăng ký Tài khoản (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Người dùng" as User
+boundary "Trang Đăng ký\n(RegisterPage)" as Page
+control "AuthService\n(Frontend)" as ClientAuth
+boundary "AuthController\n(Backend)" as Controller
+control "AuthService\n(Backend)" as Service
+entity "BcryptHelper" as Bcrypt
+database "PostgreSQL\n(Prisma)" as DB
+
+User -> Page: Nhập email, mật khẩu, xác nhận mật khẩu, họ tên
+activate Page
+
+Page -> Page: Kiểm tra định dạng form client\n(email hợp lệ, độ dài mật khẩu >= 6)
+alt Dữ liệu form không hợp lệ
+    Page --> User: Hiển thị thông báo lỗi nhập liệu
+else Dữ liệu hợp lệ
+    Page -> ClientAuth: register(dto)
+    activate ClientAuth
+    
+    ClientAuth -> Controller: POST /api/auth/register\n{ email, password, fullName }
+    activate Controller
+    
+    Controller -> Service: register(RegisterDto)
+    activate Service
+    
+    Service -> DB: user.findUnique({ where: { email } })
+    activate DB
+    DB --> Service: Kết quả kiểm tra email
+    deactivate DB
+    
+    alt Email đã tồn tại trong hệ thống
+        Service --> Controller: throw ConflictException('Email đã tồn tại')
+        Controller --> ClientAuth: HTTP 409 Conflict\n{ message: "Email đã tồn tại" }
+        ClientAuth --> Page: Báo lỗi Conflict
+        Page --> User: Hiển thị "Email đã được đăng ký"
+    else Email chưa tồn tại
+        Service -> Bcrypt: hashPassword(password)
+        activate Bcrypt
+        Bcrypt --> Service: passwordHash
+        deactivate Bcrypt
+        
+        Service -> DB: prisma.$transaction(\n  user.create(with profile, cart)\n)
+        activate DB
+        note right of DB: Tạo đồng thời bản ghi User,\nUserProfile và khởi tạo Cart trống
+        DB --> Service: user entity đã tạo
+        deactivate DB
+        
+        Service --> Controller: { id, email, role, status }
+        deactivate Service
+        
+        Controller --> ClientAuth: HTTP 201 Created\n{ success: true, data: user }
+        deactivate Controller
+        
+        ClientAuth --> Page: Phản hồi thành công
+        deactivate ClientAuth
+        
+        Page --> User: Thông báo đăng ký thành công, chuyển hướng Đăng nhập
+    end
+end
+deactivate Page
+
+@enduml
+

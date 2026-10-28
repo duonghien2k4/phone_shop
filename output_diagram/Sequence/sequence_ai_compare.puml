@@ -1,0 +1,76 @@
+@startuml
+' Mục đích: Mô tả trình tự So sánh Thông số và Đánh giá 2 Sản phẩm bằng AI
+' Nguồn tham chiếu:
+' - Frontend Page: my-web/frontend/src/app/compare/page.tsx
+' - Frontend Store: my-web/frontend/src/store/useCompareStore.ts
+' - Next.js Route Handler: my-web/frontend/src/app/api/compare-ai/route.ts
+' - External Service: OpenAI API (gpt-4o-mini)
+
+title Sơ đồ Trình tự - So sánh Sản phẩm Thông minh bằng AI (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Người dùng" as User
+boundary "Trang So sánh Sản phẩm\n(ComparePage)" as Page
+control "useCompareStore\n(Zustand)" as Store
+boundary "Compare AI Route Handler\n(/api/compare-ai)" as Route
+control "OpenAI GPT-4o-mini API\n(External)" as OpenAI
+control "Fallback Specs Engine\n(Local Reasoner)" as SpecsEngine
+
+User -> Page: Chọn 2 sản phẩm để so sánh, nhập nhu cầu (hoặc để trống), nhấn "Phân tích AI"
+activate Page
+
+Page -> Store: Lấy thông tin chi tiết Product 1 và Product 2
+activate Store
+Store --> Page: { product1, product2 }
+deactivate Store
+
+Page -> Page: Bật cờ tải (isLoadingAi = true)
+
+Page -> Route: POST /api/compare-ai\nBody: { product1, product2, query: "Nhu cầu chơi game và chụp ảnh đẹp" }
+activate Route
+
+Route -> Route: Kiểm tra input (product1 và product2 bắt buộc có)
+alt Thiếu dữ liệu 1 trong 2 sản phẩm
+    Route --> Page: HTTP 400 Bad Request { error: "Missing products for comparison" }
+    Page --> User: Thông báo vui lòng chọn đủ 2 sản phẩm
+else Đủ 2 sản phẩm
+    Route -> Route: Kiểm tra biến môi trường OPENAI_API_KEY
+
+    alt OPENAI_API_KEY tồn tại
+        Route -> OpenAI: POST https://api.openai.com/v1/chat/completions\nSystem: "Bạn là Chuyên gia Đánh giá & So sánh Sản phẩm Công nghệ..."\nUser: Thông số Product 1 vs Product 2 và nhu cầu người dùng
+        activate OpenAI
+
+        alt OpenAI trả lời thành công
+            OpenAI --> Route: Trả về nội dung so sánh logic Markdown
+            deactivate OpenAI
+            Route --> Page: HTTP 200 OK\n{ reply: data.choices[0].message.content }
+        else OpenAI lỗi hoặc quá tải
+            OpenAI --> Route: Lỗi kết nối
+            deactivate OpenAI
+            Route -> SpecsEngine: Chuyển sang Engine so sánh thông số cục bộ
+            activate SpecsEngine
+            SpecsEngine -> SpecsEngine: Tổng hợp Bảng so sánh 5 thông số cốt lõi:\nMàn hình, Chip, RAM, Giá, Phân tích điểm vượt trội
+            SpecsEngine --> Route: Chuỗi Markdown so sánh chuẩn hóa
+            deactivate SpecsEngine
+            Route --> Page: HTTP 200 OK\n{ reply: fallbackReply }
+        end
+    else Không cấu hình OPENAI_API_KEY
+        Route -> SpecsEngine: Tạo bảng phân tích thông số tự động
+        activate SpecsEngine
+        SpecsEngine -> SpecsEngine: So sánh giá, màn hình, vi xử lý, bộ nhớ\nĐưa ra phân tích ưu nhược điểm và lời khuyên chốt hạ
+        SpecsEngine --> Route: Kết quả phân tích Markdown
+        deactivate SpecsEngine
+        Route --> Page: HTTP 200 OK\n{ reply: fallbackReply }
+    end
+    deactivate Route
+
+    Page -> Page: Tắt cờ tải (isLoadingAi = false)\nLưu nội dung phân tích vào state (aiAnalysis)
+    Page --> User: Hiển thị Bảng đối đầu chi tiết, thanh chỉ số hiệu năng và lời khuyên tư vấn
+end
+deactivate Page
+
+@enduml
+

@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersController = void 0;
 const common_1 = require("@nestjs/common");
 const get_user_decorator_1 = require("../../common/decorators/get-user.decorator");
-const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const clerk_auth_guard_1 = require("../../common/guards/clerk-auth.guard");
 const create_order_dto_1 = require("./dto/create-order.dto");
 const orders_service_1 = require("./orders.service");
 let OrdersController = class OrdersController {
@@ -58,7 +58,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "createOrder", null);
 exports.OrdersController = OrdersController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard),
     (0, common_1.Controller)('orders'),
     __metadata("design:paramtypes", [orders_service_1.OrdersService])
 ], OrdersController);

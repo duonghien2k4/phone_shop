@@ -1,0 +1,87 @@
+@startuml
+' Mục đích: Mô tả chi tiết luồng kiểm tra điều kiện Voucher và Tạo đơn trong Transaction
+' Nguồn tham chiếu:
+' - Backend Service: my-web/backend/src/modules/orders/orders.service.ts (createOrder)
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Voucher, UserVoucher, Order)
+
+title Sơ đồ Luồng Nghiệp vụ - Kiểm tra Điều kiện Voucher và Tạo Đơn hàng (Activity Diagram)
+
+skinparam shadowing false
+skinparam monochrome true
+
+start
+
+:Nhận yêu cầu tạo đơn hàng: createOrder(userId, dto);
+:Mở prisma.$transaction();
+
+:Truy vấn giỏ hàng của người dùng (transaction.cart.findUnique);
+if (Giỏ hàng có rỗng không (!cart?.items.length)?) then (Rỗng)
+    :Ném ngoại lệ BadRequestException("Giỏ hàng đang trống");
+    stop
+else (Có sản phẩm)
+    :Tính subtotal = tổng tiền các sản phẩm;
+endif
+
+if (Khách hàng có gửi mã voucher (dto.voucherCode)?) then (Có mã)
+    :Tìm kiếm mã voucher trong bảng vouchers;
+    
+    if (Voucher không tồn tại?) then (Đúng)
+        :Ném ngoại lệ BadRequestException("Mã không hợp lệ hoặc đã hết hạn");
+        stop
+    elseif (voucher.isActive == false?) then (Đúng)
+        :Ném ngoại lệ BadRequestException("Mã không hợp lệ hoặc đã hết hạn");
+        stop
+    elseif (startsAt > now HOẶC expiresAt < now?) then (Đúng)
+        :Ném ngoại lệ BadRequestException("Mã giảm giá đã hết hạn");
+        stop
+    elseif (usageLimit != null VÀ usedCount >= usageLimit?) then (Hết lượt)
+        :Ném ngoại lệ BadRequestException("Mã giảm giá đã hết lượt sử dụng");
+        stop
+    elseif (subtotal < voucher.minOrderValue?) then (Chưa đủ điều kiện)
+        :Ném ngoại lệ BadRequestException("Đơn hàng chưa đạt giá trị tối thiểu");
+        stop
+    else (Đạt điều kiện cơ bản)
+        if (voucher.discountType == "PERCENT"?) then (Phần trăm)
+            :discount = Math.round((subtotal * discountValue) / 100);
+        else (Số tiền cố định)
+            :discount = discountValue;
+        endif
+
+        if (maxDiscount != null?) then (Có trần giảm)
+            :discount = Math.min(discount, maxDiscount);
+        endif
+        :discount = Math.min(discount, subtotal);
+
+        :Kiểm tra bảng user_vouchers của userId và voucherId;
+        if (priorUse?.usedAt != null?) then (Đã từng dùng)
+            :Ném ngoại lệ BadRequestException("Bạn đã sử dụng mã giảm giá này");
+            stop
+        else (Chưa dùng)
+            :Cập nhật hoặc tạo bản ghi user_voucher (usedAt = now);
+            :Tăng voucher.usedCount lên 1;
+        endif
+    endif
+
+    if (dto.discount != discount?) then (Giá trị giảm bị lệch)
+        :Ném ngoại lệ BadRequestException("Mức giảm giá đã thay đổi");
+        stop
+    endif
+else (Không dùng voucher)
+    :discount = 0;
+endif
+
+:Tính tổng tiền cuối: total = subtotal + shippingFee - discount;
+if (total < 0?) then (Âm tiền)
+    :Ném ngoại lệ BadRequestException("Giảm giá không được lớn hơn tổng đơn");
+    stop
+else (Hợp lệ)
+    :Tạo bản ghi Order (status: PENDING, paymentStatus: PENDING);
+    :Tạo các bản ghi OrderItem (lưu snapshot thông tin sản phẩm và giá);
+    :Xóa sạch các món hàng trong giỏ (cartItem.deleteMany);
+    :Commit Transaction;
+    :Trả về thông tin đơn hàng đã tạo;
+    stop
+endif
+
+@enduml
+

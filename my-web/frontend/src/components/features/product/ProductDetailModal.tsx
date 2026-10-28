@@ -15,6 +15,7 @@ import SafeImage from '@/components/base/SafeImage';
 import { formatVND } from '@/utils/format';
 import { MockProduct, ProductVariant } from '@/types/product';
 import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
 
@@ -26,6 +27,7 @@ interface ProductDetailModalProps {
 export default function ProductDetailModal({ product, onClose }: ProductDetailModalProps) {
   const router = useRouter();
   const { addToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   
   // Default to first variant
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
@@ -36,7 +38,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
     }
   );
 
-  const [isLiked, setIsLiked] = useState(false);
+  const isLiked = isWishlisted(product.id);
   const [isCompared, setIsCompared] = useState(false);
 
   // Close modal when pressing Escape key
@@ -59,12 +61,12 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
     const finalVariantIndex = variantIndex !== -1 ? variantIndex : 0;
 
     addToCart({
-      variantId: product.id * 10 + finalVariantIndex,
+      variantId: selectedVariant.id || (product.id * 10 + finalVariantIndex),
       productId: product.id,
       productName: product.name,
-      color: LABELS.PRODUCT.DEFAULT_VARIANT,
+      color: selectedVariant.color || LABELS.PRODUCT.DEFAULT_VARIANT,
       storage: selectedVariant.storage,
-      imageUrl: product.image,
+      imageUrl: selectedVariant.imageUrl || product.image,
       price: selectedVariant.price,
       quantity: 1,
     });
@@ -163,9 +165,9 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               <div className="modal-variants-section">
                 <h4 className="section-subtitle">{LABELS.PRODUCT.CHOOSE_STORAGE}</h4>
                 <div className="modal-variants-list">
-                  {product.variants.map((v) => (
+                  {product.variants.map((v, idx) => (
                     <button
-                      key={v.storage}
+                      key={v.id || `${v.storage}-${idx}`}
                       type="button"
                       className={`modal-variant-btn ${selectedVariant.storage === v.storage ? 'active' : ''}`}
                       onClick={() => setSelectedVariant(v)}
@@ -266,7 +268,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               <button
                 type="button"
                 className={`modal-action-icon-btn ${isLiked ? 'liked' : ''}`}
-                onClick={() => setIsLiked(!isLiked)}
+                onClick={() => toggleWishlist(product.id, product.name)}
                 title={LABELS.PRODUCT.FAVORITE_TOOLTIP}
               >
                 <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />

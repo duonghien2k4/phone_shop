@@ -1,0 +1,60 @@
+@startuml
+' Mục đích: Mô tả nghiệp vụ Quản lý Giỏ hàng và Danh sách Yêu thích
+' Nguồn tham chiếu:
+' - Frontend Page & Hooks: my-web/frontend/src/app/cart/page.tsx, my-web/frontend/src/hooks/useCart.ts, my-web/frontend/src/hooks/useWishlist.ts
+' - Frontend Stores: my-web/frontend/src/store/useCartStore.ts, my-web/frontend/src/store/useWishlistStore.ts
+' - Backend Controllers: my-web/backend/src/modules/cart/cart.controller.ts, my-web/backend/src/modules/wishlist/wishlist.controller.ts
+' - Backend Services: my-web/backend/src/modules/cart/cart.service.ts, my-web/backend/src/modules/wishlist/wishlist.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Cart, CartItem, WishlistItem)
+
+title Sơ đồ Use Case - Giỏ hàng và Danh sách Yêu thích
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as Customer
+
+rectangle "Phân hệ Giỏ hàng & Yêu thích" {
+    package "Quản lý Giỏ hàng" {
+        usecase "Xem giỏ hàng hiện tại" as UC_ViewCart
+        usecase "Thêm sản phẩm vào giỏ hàng" as UC_AddToCart
+        usecase "Cập nhật số lượng sản phẩm" as UC_UpdateQuantity
+        usecase "Xóa sản phẩm khỏi giỏ hàng" as UC_RemoveCartItem
+        usecase "Xóa toàn bộ giỏ hàng" as UC_ClearCart
+        usecase "Đồng bộ giỏ hàng với máy chủ" as UC_SyncCart
+    }
+
+    package "Danh sách Yêu thích" {
+        usecase "Xem danh sách yêu thích" as UC_ViewWishlist
+        usecase "Bật/Tắt yêu thích sản phẩm (Toggle)" as UC_ToggleWishlist
+        usecase "Xóa sản phẩm khỏi yêu thích" as UC_RemoveWishlist
+    }
+
+    usecase "Xác thực danh tính người dùng" as UC_AuthGuard
+}
+
+Customer --> UC_ViewCart
+Customer --> UC_AddToCart
+Customer --> UC_UpdateQuantity
+Customer --> UC_RemoveCartItem
+Customer --> UC_ClearCart
+
+Customer --> UC_ViewWishlist
+Customer --> UC_ToggleWishlist
+Customer --> UC_RemoveWishlist
+
+UC_ViewCart ..> UC_AuthGuard : <<include>>
+UC_AddToCart ..> UC_AuthGuard : <<include>>
+UC_AddToCart ..> UC_SyncCart : <<include>>
+UC_UpdateQuantity ..> UC_AuthGuard : <<include>>
+UC_RemoveCartItem ..> UC_AuthGuard : <<include>>
+UC_ClearCart ..> UC_AuthGuard : <<include>>
+
+UC_ViewWishlist ..> UC_AuthGuard : <<include>>
+UC_ToggleWishlist ..> UC_AuthGuard : <<include>>
+UC_RemoveWishlist ..> UC_AuthGuard : <<include>>
+
+@enduml
+

@@ -1,0 +1,102 @@
+@startuml
+' Mục đích: Mô tả trình tự Thêm sản phẩm vào giỏ hàng và Cập nhật số lượng
+' Nguồn tham chiếu:
+' - Frontend Page & Components: my-web/frontend/src/app/products/[slug]/page.tsx, my-web/frontend/src/components/features/product/ProductDetailContent.tsx
+' - Frontend Hook & Store: my-web/frontend/src/hooks/useCart.ts, my-web/frontend/src/store/useCartStore.ts
+' - Frontend Service: my-web/frontend/src/services/cart.service.ts
+' - Backend Guard: my-web/backend/src/common/guards/clerk-auth.guard.ts
+' - Backend Controller: my-web/backend/src/modules/cart/cart.controller.ts (POST /api/cart/items, PUT /api/cart/items/:variantId)
+' - Backend Service: my-web/backend/src/modules/cart/cart.service.ts
+' - Database: my-web/backend/prisma/schema.prisma (Model Cart, CartItem, ProductVariant, Inventory)
+
+title Sơ đồ Trình tự - Thêm Sản phẩm vào Giỏ hàng (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as User
+boundary "Giao diện Chi tiết\n(ProductDetailContent)" as Page
+control "useCart\n(Hook)" as Hook
+control "useCartStore\n(Zustand)" as Store
+control "CartService\n(Frontend)" as ClientService
+boundary "ClerkAuthGuard\n(Backend)" as Guard
+boundary "CartController\n(Backend)" as Controller
+control "CartService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma)" as DB
+
+User -> Page: Chọn Biến thể (Màu sắc, Dung lượng), bấm "Thêm vào giỏ"
+activate Page
+
+Page -> Hook: addItem({ variantId, quantity })
+activate Hook
+
+Hook -> Store: addItem(optimisticItem)
+activate Store
+note right of Store: Cập nhật tạm thời giao diện (Optimistic UI)
+Store --> Hook: Trạng thái UI được cập nhật
+deactivate Store
+
+Hook -> ClientService: addItem({ variantId, quantity })
+activate ClientService
+
+ClientService -> Guard: POST /api/cart/items\nHeader: Authorization: Bearer <token>\nBody: { variantId, quantity }
+activate Guard
+
+Guard -> Guard: Kiểm tra và giải mã Token (Clerk hoặc Local JWT)
+alt Token không hợp lệ hoặc thiếu
+    Guard --> ClientService: HTTP 401 Unauthorized
+    ClientService --> Hook: Báo lỗi chưa đăng nhập
+    Hook -> Store: Hoàn tác giỏ hàng (Rollback state)
+    Hook --> Page: Yêu cầu người dùng đăng nhập
+    Page --> User: Hiển thị hộp thoại nhắc đăng nhập
+else Token hợp lệ
+    Guard -> Controller: Cho phép truy cập (request.user gắn UserPayload)
+    deactivate Guard
+    activate Controller
+
+    Controller -> BackendService: addItem(userId, AddCartItemDto)
+    activate BackendService
+
+    BackendService -> DB: cart.findUnique({ where: { userId } })
+    activate DB
+    DB --> BackendService: Cart object (hoặc tạo mới nếu chưa có)
+    deactivate DB
+
+    BackendService -> DB: inventory.findUnique({ where: { variantId } })
+    activate DB
+    DB --> BackendService: Thông tin tồn kho (stock)
+    deactivate DB
+
+    alt Tồn kho không đủ (stock < quantity)
+        BackendService --> Controller: throw BadRequestException('Sản phẩm đã hết hàng hoặc số lượng không đủ')
+        Controller --> ClientService: HTTP 400 Bad Request
+        ClientService --> Hook: Báo lỗi tồn kho
+        Hook -> Store: Rollback giỏ hàng
+        Hook --> Page: Báo lỗi vượt quá tồn kho
+        Page --> User: Hiển thị "Số lượng trong kho không đủ"
+    else Tồn kho hợp lệ
+        BackendService -> DB: cartItem.upsert({\n  where: { cartId_variantId },\n  create: { cartId, variantId, quantity },\n  update: { quantity: { increment: quantity } }\n})
+        activate DB
+        DB --> BackendService: CartItem đã lưu
+        deactivate DB
+
+        BackendService --> Controller: Kết quả thành công
+        deactivate BackendService
+
+        Controller --> ClientService: HTTP 201 Created\n{ success: true }
+        deactivate Controller
+
+        ClientService --> Hook: Thành công
+        deactivate ClientService
+
+        Hook --> Page: Xác nhận thêm giỏ hàng thành công
+        deactivate Hook
+
+        Page --> User: Hiển thị Toast thông báo "Đã thêm vào giỏ hàng"
+    end
+end
+deactivate Page
+
+@enduml
+

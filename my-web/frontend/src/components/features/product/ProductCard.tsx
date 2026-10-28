@@ -11,6 +11,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Star, Zap, GitCompare, Heart, Gift, HelpCircle } from 'lucide-react';
 import SafeImage from '@/components/base/SafeImage';
 import { formatVND } from '@/utils/format';
@@ -19,6 +20,10 @@ import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
 import { useCompareStore } from '@/store/useCompareStore';
 import { useIsMounted } from '@/hooks/useIsMounted';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useWishlist } from '@/hooks/useWishlist';
 
 interface ProductCardProps {
   product: MockProduct;
@@ -27,6 +32,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onViewDetail }: ProductCardProps) {
   const isMounted = useIsMounted();
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   // Default to first variant
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0] || {
@@ -35,7 +41,7 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
     oldPrice: product.price * 1.1 // fallback
   });
 
-  const [isLiked, setIsLiked] = useState(false);
+  const isLiked = isMounted && isWishlisted(product.id);
   const comparedProducts = useCompareStore((state) => state.comparedProducts);
   const addCompare = useCompareStore((state) => state.addProduct);
   const isCompared = isMounted && comparedProducts.some((p) => p.id === product.id);
@@ -47,7 +53,18 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
   const hasSpecs = Boolean(product.specs?.screen || product.specs?.chip || product.specs?.ram);
 
   return (
-    <article className="product-card card-container spec-product-card">
+    <motion.div
+      className="h-full"
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      whileHover={{ y: -6 }}
+    >
+    <Card
+      className="product-card card-container spec-product-card modern-product-card"
+      style={{ backgroundColor: 'var(--store-surface)', color: 'var(--text-primary)' }}
+    >
       {/* Top action badges */}
       <div className="product-card-top-meta">
         {product.installment && (
@@ -82,15 +99,17 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
           </Link>
         )}
         {product.badge && product.badge !== LABELS.PRODUCT.INSTALLMENT_BADGE && (
-          <span className={`badge badge-${product.badgeType} product-card-badge`}>
+          <Badge className={`badge-${product.badgeType} product-card-badge`}>
             {product.badge}
-          </span>
+          </Badge>
         )}
 
         {/* Floating actions overlay (Top Right) */}
         <div className="product-card-actions-overlay">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             className={`floating-action-btn compare-btn ${isCompared ? 'active' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -99,33 +118,40 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
             title={LABELS.PRODUCT.COMPARE_TOOLTIP}
           >
             <GitCompare size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             className={`floating-action-btn fav-btn ${isLiked ? 'liked' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              setIsLiked(!isLiked);
+              toggleWishlist(product.id, product.name);
             }}
             title={LABELS.PRODUCT.FAVORITE_TOOLTIP}
           >
             <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Interactive Storage Variants Selector */}
       {product.variants && product.variants.length > 0 && (
-        <div className="product-variants-selector">
-          {product.variants.map((v) => (
-            <button
-              key={v.storage}
+        <div className="product-variants-selector" onClick={(e) => e.stopPropagation()}>
+          {product.variants.map((v, idx) => (
+            <Button
+              key={v.id || `${v.storage}-${idx}`}
               type="button"
+              variant={selectedVariant.storage === v.storage ? 'default' : 'outline'}
+              size="sm"
               className={`variant-pill-btn ${selectedVariant.storage === v.storage ? 'active' : ''}`}
-              onClick={() => setSelectedVariant(v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedVariant(v);
+              }}
             >
               {v.storage}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -195,16 +221,19 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
         {/* Quick Action Footer */}
         <div className="product-card-action-bar">
           {onViewDetail ? (
-            <button type="button" onClick={onViewDetail} className="btn btn-primary btn-sm btn-buy-now">
+            <Button type="button" onClick={onViewDetail} className="btn-buy-now" size="lg">
               {LABELS.COMMON.BUY_NOW}
-            </button>
+            </Button>
           ) : (
-            <Link href={`/products/${product.slug}`} className="btn btn-primary btn-sm btn-buy-now">
-              {LABELS.COMMON.BUY_NOW}
+            <Link href={`/products/${product.slug}`} className="block">
+              <Button size="lg" className="btn-buy-now">
+                {LABELS.COMMON.BUY_NOW}
+              </Button>
             </Link>
           )}
         </div>
       </div>
-    </article>
+    </Card>
+    </motion.div>
   );
 }

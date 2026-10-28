@@ -1,0 +1,67 @@
+@startuml
+' Mục đích: Mô tả luồng 4 bước Đăng ký Trả góp trực tuyến của Khách hàng
+' Nguồn tham chiếu:
+' - Frontend Pages & Steps: my-web/frontend/src/app/tra-gop/page.tsx, Step1, Step2KycVerification, Step3AiApproval, Step4ContractSuccess
+' - Backend Service: my-web/backend/src/modules/installment/installment.service.ts (createApplication, saveBase64File)
+' - Database Entity: my-web/backend/prisma/schema.prisma (InstallmentApplication, ApplicationStatusHistory)
+
+title Sơ đồ Luồng Nghiệp vụ - Đăng ký Hồ sơ Trả góp (Customer Journey)
+
+skinparam shadowing false
+skinparam monochrome true
+
+start
+
+:Khách hàng truy cập Phân hệ Trả góp (/tra-gop);
+:Hệ thống tải danh sách Đối tác tài chính (HD SAISON, Home Credit, FE Credit) và Thiết bị hỗ trợ;
+
+partition "Bước 1: Lựa chọn Gói Tài chính" {
+    :Chọn sản phẩm điện thoại và biến thể mong muốn;
+    :Chọn công ty tài chính đối tác;
+    :Chọn tỷ lệ trả trước (từ 0% đến 70%);
+    :Chọn kỳ hạn vay trả góp (6, 9, 12 hoặc 24 tháng);
+    :Hệ thống tự động tính:
+    - Tiền trả trước (downPayment)
+    - Số tiền vay trả góp (financedAmount)
+    - Tiền góp dự tính mỗi tháng (monthlyPayment);
+    :Khách hàng bấm "Tiếp tục sang bước KYC";
+}
+
+partition "Bước 2: Xác thực KYC & Chữ ký điện tử" {
+    :Khách hàng chụp / tải lên ảnh CCCD mặt trước;
+    :Khách hàng chụp / tải lên ảnh CCCD mặt sau;
+    :Nhập thông tin cá nhân (Họ tên, Số CCCD, Ngày sinh, Địa chỉ);
+    :Nhập thông tin việc làm & thu nhập hàng tháng;
+    :Nhập thông tin người liên hệ tham chiếu;
+    :Vẽ chữ ký điện tử trực tiếp trên màn hình cảm ứng (Canvas Signature);
+    if (Đủ ảnh CCCD 2 mặt và chữ ký điện tử?) then (Đủ)
+        :Hệ thống tải dữ liệu ảnh lên máy chủ /uploads/installment/;
+        :Lưu URL ảnh vào kế hoạch đăng ký;
+    else (Thiếu)
+        :Báo lỗi yêu cầu hoàn tất thông tin KYC và chữ ký;
+        stop
+    endif
+}
+
+partition "Bước 3: Phê duyệt và Nộp hồ sơ" {
+    :Kiểm tra lại toàn bộ thông tin hợp đồng và biểu phí;
+    :Khách hàng tích chọn "Đồng ý điều khoản trả góp";
+    :Nhấn "Gửi hồ sơ đăng ký";
+    
+    :Hệ thống kiểm tra tính hợp lệ của đối tác tài chính;
+    :Sinh mã định danh hồ sơ duy nhất (INS-YYYY-XXXXXX);
+    :Mở Database Transaction:
+    1. Tạo bản ghi InstallmentApplication với trạng thái SUBMITTED
+    2. Ghi Audit Trail vào bảng ApplicationStatusHistory (action: CUSTOMER_SUBMIT);
+    :Commit Transaction;
+}
+
+partition "Bước 4: Hoàn tất & Nhận mã hợp đồng" {
+    :Chuyển sang màn hình Hợp đồng thành công (Step 4);
+    :Hiển thị Mã hồ sơ, chi tiết khoản vay và chữ ký đã ký;
+    :Cung cấp liên kết tra cứu tiến độ thẩm định (/tra-gop/tra-cuu);
+    stop
+}
+
+@enduml
+

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 import {
   ShoppingBag,
   Search,
@@ -16,19 +17,16 @@ import {
   CreditCard,
   Bot,
   ShieldCheck,
-  Store,
-  Grid,
   Navigation,
   RefreshCw,
-  LogOut,
   Loader2
 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
 import { CITY_COORDINATES, getNearestCity } from '@/utils/locationUtils';
 import { toast } from '@/store/useToastStore';
+import { Button } from '@/components/ui/button';
 
 const POPULAR_SEARCHES = [
   'iPhone 17 Pro Max',
@@ -41,7 +39,6 @@ const POPULAR_SEARCHES = [
 export default function Header() {
   const router = useRouter();
   const { totalItems } = useCart();
-  const { user, isAuthenticated, logout } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -49,11 +46,9 @@ export default function Header() {
   const [nearestStore, setNearestStore] = useState('123 Nguyễn Trãi, Q.1');
   const [isLocating, setIsLocating] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
 
   const detectGPSLocation = useCallback((showToast = true) => {
     if (!navigator.geolocation) {
@@ -92,7 +87,13 @@ export default function Header() {
     );
   }, []);
 
-  // Load saved location from localStorage or detect GPS after client mount (prevents SSR Hydration mismatch)
+  // Enforce light theme mode across the application
+  useEffect(() => {
+    document.documentElement.dataset.theme = 'light';
+    localStorage.setItem('theme', 'light');
+  }, []);
+
+  //use for location tracking
   useEffect(() => {
     const savedLoc = localStorage.getItem('user-location');
     const savedStore = localStorage.getItem('user-nearest-store');
@@ -125,9 +126,6 @@ export default function Header() {
       }
       if (locationRef.current && !locationRef.current.contains(event.target as Node)) {
         setShowLocationDropdown(false);
-      }
-      if (userRef.current && !userRef.current.contains(event.target as Node)) {
-        setShowUserDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -291,9 +289,10 @@ export default function Header() {
             <Phone size={15} className="hotline-icon" />
             <div className="hotline-info">
               <span className="hotline-label">Gọi mua hàng</span>
-              <span className="hotline-number">{APP_CONFIG.HOTLINE}</span>
+              <span className="hotline-number" style={{ fontSize: '13px' }}>{APP_CONFIG.HOTLINE}</span>
             </div>
           </a>
+
 
           {/* Track Orders */}
           <Link href="/orders" className="header-track-btn">
@@ -311,47 +310,25 @@ export default function Header() {
           </Link>
 
           {/* User Account / Login */}
-          <div className="header-user-account" ref={userRef}>
-            {isAuthenticated && user ? (
-              <>
-                <button
-                  type="button"
-                  className="user-profile-trigger"
-                  onClick={() => setShowUserDropdown(!showUserDropdown)}
-                >
-                  <div className="avatar-placeholder">
-                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
-                  </div>
-                  <span className="user-name-text">{user.fullName || 'Tài khoản'}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showUserDropdown && (
-                  <div className="user-dropdown-menu">
-                    <div className="dropdown-user-info">
-                      <span className="dropdown-user-name">{user.fullName}</span>
-                      <span className="dropdown-user-email">{user.email}</span>
-                    </div>
-                    <div className="dropdown-divider" />
-                    <Link href="/orders" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                      <FileText size={15} /> <span>Đơn hàng của tôi</span>
-                    </Link>
-                    <Link href="/bao-hanh" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                      <ShieldCheck size={15} /> <span>Tra cứu bảo hành IMEI</span>
-                    </Link>
-                    <div className="dropdown-divider" />
-                    <button type="button" className="dropdown-item logout-btn" onClick={() => { logout(); setShowUserDropdown(false); }}>
-                      <LogOut size={15} /> <span>Đăng xuất</span>
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <Link href={APP_CONFIG.ROUTES.LOGIN} className="header-login-btn">
-                <User size={18} />
-                <span>Đăng nhập</span>
-              </Link>
-            )}
+          <div className="header-user-account">
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
+            <Show when="signed-out">
+              <div className="header-auth-actions">
+                <SignInButton mode="modal">
+                  <button type="button" className="header-login-btn">
+                    <User size={18} />
+                    <span>Đăng nhập</span>
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button type="button" className="header-login-btn header-signup-btn">
+                    <span>Đăng ký</span>
+                  </button>
+                </SignUpButton>
+              </div>
+            </Show>
           </div>
 
         </div>

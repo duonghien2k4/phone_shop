@@ -14,6 +14,10 @@
     "lint:backend": "npm run lint --prefix my-web/backend",
     "lint:all": "npm run lint:backend && npm run lint:frontend",
     "test:backend": "npm run test --prefix my-web/backend",
+    "seed": "node seed.js",
     "ci": "npm run lint:all && npm run build:all && npm run test:backend"
+  },
+  "bin": {
+    "seed": "./seed.js"
   }
 }

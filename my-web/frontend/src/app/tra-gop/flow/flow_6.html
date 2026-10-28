@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sóc Mobile - Phê duyệt thành công &amp; Ký hợp đồng điện tử</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Dancing+Script:wght@700&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Material Symbols Outlined -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS v3 with Plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Configuration Script -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#002115",
+                        "on-primary-container": "#f2f1ff",
+                        "surface": "#faf8ff",
+                        "on-surface-variant": "#444656",
+                        "surface-container-highest": "#dae2fd",
+                        "surface-container": "#eaedff",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#ffb59d",
+                        "on-secondary-container": "#5d1900",
+                        "inverse-on-surface": "#eef0ff",
+                        "tertiary-fixed": "#60fcc5",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-low": "#f2f3ff",
+                        "on-error": "#ffffff",
+                        "primary-container": "#3b5bff",
+                        "on-error-container": "#93000a",
+                        "outline": "#747688",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#bac3ff",
+                        "primary": "#143de7",
+                        "surface-container-high": "#e2e7ff",
+                        "surface-variant": "#dae2fd",
+                        "inverse-surface": "#283044",
+                        "tertiary-container": "#007e5c",
+                        "error": "#ba1a1a",
+                        "secondary": "#ab3500",
+                        "inverse-primary": "#bac3ff",
+                        "on-surface": "#131b2e",
+                        "tertiary-fixed-dim": "#3adfaa",
+                        "on-tertiary-fixed-variant": "#00513a",
+                        "secondary-fixed": "#ffdbd0",
+                        "background": "#faf8ff",
+                        "on-secondary-fixed-variant": "#832600",
+                        "primary-fixed": "#dee0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#131b2e",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#c6ffe3",
+                        "outline-variant": "#c4c5d9",
+                        "on-primary-fixed": "#00105b",
+                        "tertiary": "#006347",
+                        "on-primary-fixed-variant": "#002eca",
+                        "surface-tint": "#2448ef",
+                        "secondary-container": "#fe6a34",
+                        "on-secondary-fixed": "#390c00",
+                        "surface-dim": "#d2d9f4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "space-xs": "0.25rem",
+                        "gutter": "1.25rem",
+                        "space-xl": "2rem",
+                        "space-sm": "0.5rem",
+                        "margin-tablet": "1.5rem",
+                        "gutter-desktop": "1.5rem",
+                        "space-2xl": "3rem",
+                        "space-md": "1rem",
+                        "margin": "1rem",
+                        "space-lg": "1.5rem",
+                        "margin-desktop": "2.5rem"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "display-hero-mobile": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "display-hero": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-xl": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "title-price": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-xl-mobile": ["Plus Jakarta Sans"],
+                        "signature": ["Dancing Script"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "display-hero-mobile": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "display-hero": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.025em", "fontWeight": "800" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "title-price": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "700" }],
+                        "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-xl-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "750" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body
+    class="bg-background text-on-surface antialiased selection:bg-primary selection:text-on-primary min-h-screen flex flex-col">
+    <!-- TOP NAV BAR (Shared Component Source of Truth) -->
+    <header
+        class="bg-surface-container-lowest/90 dark:bg-inverse-surface/90 backdrop-blur-md border-b border-outline-variant/30 dark:border-outline/20 shadow-[0_4px_20px_0_rgba(15,23,42,0.04)] dark:shadow-none docked full-width top-0 sticky z-50">
+        <div
+            class="w-full max-w-[1320px] mx-auto px-margin md:px-margin-tablet lg:px-margin-desktop flex items-center justify-between h-20">
+            <!-- Brand Logo & Global Search -->
+            <div class="flex items-center gap-space-lg">
+                <a class="text-headline-md font-headline-md font-extrabold text-primary dark:text-inverse-primary tracking-tight flex items-center gap-2"
+                    href="#">
+                    <span
+                        class="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center font-extrabold shadow-sm">P</span>
+                    Sóc Mobile
+                </a>
+                <div class="relative hidden xl:block w-72">
+                    <span
+                        class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+                    <input
+                        class="w-full h-10 pl-10 pr-4 text-body-sm font-body-sm rounded-full bg-surface-container-low border border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-outline"
+                        placeholder="Tra cứu hồ sơ hoặc máy..." type="text" />
+                </div>
+            </div>
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-space-lg">
+                <a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-inverse-primary text-label-lg font-label-lg transition-colors"
+                    href="#">
+                    Điện thoại
+                </a>
+                <!-- Active Nav: Trả góp 0% -->
+                <a class="text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed pb-1 font-bold text-label-lg font-label-lg"
+                    href="#">
+                    Trả góp 0%
+                </a>
+                <a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-inverse-primary text-label-lg font-label-lg transition-colors"
+                    href="#">
+                    Ưu đãi tài chính
+                </a>
+                <a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-primary dark:hover:text-inverse-primary text-label-lg font-label-lg transition-colors"
+                    href="#">
+                    Tra cứu hồ sơ
+                </a>
+            </nav>
+            <!-- Trailing Action Badges & Support -->
+            <div class="flex items-center gap-space-md">
+                <div
+                    class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/40">
+                    <span class="material-symbols-outlined text-primary text-lg" data-weight="fill"
+                        style="font-variation-settings: 'FILL' 1;">support_agent</span>
+                    <span class="text-label-sm font-label-sm text-on-surface font-bold">Hỗ trợ 1800 6868</span>
+                </div>
+                <button aria-label="Notifications"
+                    class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant relative transition-colors">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                    <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-secondary-container"></span>
+                </button>
+                <button aria-label="Cart"
+                    class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant relative transition-colors">
+                    <span class="material-symbols-outlined text-xl">shopping_bag</span>
+                    <span
+                        class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-primary text-on-primary text-[10px] font-bold">1</span>
+                </button>
+                <div
+                    class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-sm border border-primary/20">
+                    HN
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- MAIN CANVAS -->
+    <main
+        class="flex-grow w-full max-w-[1320px] mx-auto px-margin md:px-margin-tablet lg:px-margin-desktop py-space-lg">
+        <!-- STEPPER (4 Steps Progress Tracker) -->
+        <section
+            class="mb-space-xl bg-surface-container-lowest rounded-2xl p-space-lg border border-outline-variant/40 shadow-[0_4px_16px_-2px_rgba(59,91,255,0.04)]">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-space-md items-center relative">
+                <!-- Step 1: Hoàn thành -->
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm">
+                        <span class="material-symbols-outlined text-xl font-bold">check</span>
+                    </div>
+                    <div>
+                        <p class="text-label-sm font-label-sm text-outline">Bước 1</p>
+                        <p class="text-label-md font-label-md text-on-surface font-bold">Chọn gói trả góp 0%</p>
+                    </div>
+                </div>
+                <!-- Connector Line 1 -->
+                <div
+                    class="hidden md:block absolute left-[22%] top-1/2 -translate-y-1/2 w-[5%] h-0.5 bg-tertiary-fixed">
+                </div>
+                <!-- Step 2: Hoàn thành -->
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm">
+                        <span class="material-symbols-outlined text-xl font-bold">check</span>
+                    </div>
+                    <div>
+                        <p class="text-label-sm font-label-sm text-outline">Bước 2</p>
+                        <p class="text-label-md font-label-md text-on-surface font-bold">Điền hồ sơ &amp; CCCD</p>
+                    </div>
+                </div>
+                <!-- Connector Line 2 -->
+                <div
+                    class="hidden md:block absolute left-[47%] top-1/2 -translate-y-1/2 w-[5%] h-0.5 bg-tertiary-fixed">
+                </div>
+                <!-- Step 3: Hoàn thành -->
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm">
+                        <span class="material-symbols-outlined text-xl font-bold">check</span>
+                    </div>
+                    <div>
+                        <p class="text-label-sm font-label-sm text-outline">Bước 3</p>
+                        <p class="text-label-md font-label-md text-on-surface font-bold">Phê duyệt AI tự động</p>
+                    </div>
+                </div>
+                <!-- Connector Line 3 -->
+                <div
+                    class="hidden md:block absolute left-[72%] top-1/2 -translate-y-1/2 w-[5%] h-0.5 bg-tertiary-fixed">
+                </div>
+                <!-- Step 4: Active Hiện tại (Đang hoàn tất & ký hợp đồng) -->
+                <div class="flex items-center gap-3 bg-tertiary/10 border border-tertiary/30 p-2.5 rounded-xl">
+                    <div
+                        class="w-10 h-10 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shrink-0 shadow-md ring-4 ring-tertiary-fixed/30 animate-pulse">
+                        <span class="material-symbols-outlined text-xl">draw</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-label-sm font-label-sm text-tertiary font-bold">Bước 4</span>
+                            <span
+                                class="px-1.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold">Hoàn
+                                tất</span>
+                        </div>
+                        <p class="text-label-md font-label-md text-tertiary font-extrabold">Ký hợp đồng &amp; Nhận máy
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- HERO BANNER: Chúc mừng phê duyệt thành công -->
+        <section
+            class="mb-space-xl relative overflow-hidden rounded-2xl bg-gradient-to-r from-tertiary/15 via-surface-container to-primary/10 border border-tertiary-fixed-dim/40 p-space-lg md:p-space-xl shadow-[0_8px_30px_rgb(0,99,71,0.06)]">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md relative z-10">
+                <div class="flex items-start md:items-center gap-space-md">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 shadow-lg shadow-tertiary-fixed/40 ring-4 ring-surface-container-lowest">
+                        <span class="material-symbols-outlined text-3xl font-extrabold" data-weight="fill"
+                            style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                    </div>
+                    <div>
+                        <div
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary text-on-tertiary text-label-sm font-label-sm uppercase tracking-wider mb-1.5 font-bold">
+                            <span class="material-symbols-outlined text-sm">stars</span>
+                            Hồ sơ hợp lệ 100%
+                        </div>
+                        <h1 class="text-headline-lg font-headline-lg text-on-surface font-extrabold tracking-tight">
+                            CHÚC MỪNG! HỒ SƠ TRẢ GÓP CỦA BẠN ĐÃ ĐƯỢC PHÊ DUYỆT 100%
+                        </h1>
+                        <p class="text-body-md font-body-md text-on-surface-variant mt-1">
+                            Gói ưu đãi tài chính độc quyền Sóc Mobile × Home Credit Việt Nam đã sẵn sàng giải ngân cho
+                            đơn hàng của bạn.
+                        </p>
+                    </div>
+                </div>
+                <!-- Meta pills box -->
+                <div
+                    class="bg-surface-container-lowest/80 backdrop-blur-sm p-space-md rounded-xl border border-outline-variant/50 shrink-0 flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-body-sm font-body-sm text-outline">Mã hồ sơ:</span>
+                        <span
+                            class="text-label-md font-label-md font-extrabold text-primary font-mono">#HDTG-2025-88912</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-body-sm font-body-sm text-outline">Đối tác tài chính:</span>
+                        <span class="text-label-md font-label-md font-bold text-on-surface">Home Credit Finance</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <span class="text-body-sm font-body-sm text-outline">Thời gian duyệt AI:</span>
+                        <span
+                            class="inline-flex items-center gap-1 text-label-sm font-label-sm font-bold text-tertiary">
+                            <span class="material-symbols-outlined text-xs">timer</span> 2 phút 15 giây
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- MAIN TWO-COLUMN CONTENT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+            <!-- LEFT COLUMN: HỢP ĐỒNG ĐIỆN TỬ, CHỮ KÝ & LỊCH TRẢ GÓP (7 cols) -->
+            <section class="lg:col-span-7 flex flex-col gap-space-lg">
+                <!-- Box 1: Digital Contract Preview Box -->
+                <div
+                    class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-[0px_4px_16px_-2px_rgba(59,91,255,0.04)] overflow-hidden">
+                    <div
+                        class="px-space-lg py-4 border-b border-outline-variant/40 bg-surface-container-low flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-xl">description</span>
+                            <h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">
+                                Bản xem trước Hợp đồng Trả góp Điện tử
+                            </h2>
+                        </div>
+                        <span
+                            class="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-label-sm font-label-sm font-bold border border-primary/20">
+                            Chuẩn pháp lý EVN-EID
+                        </span>
+                    </div>
+                    <!-- Contract Document Body (Scrollable Frame) -->
+                    <div
+                        class="p-space-lg max-h-[380px] overflow-y-auto space-y-4 text-on-surface divide-y divide-outline-variant/20 scrollbar-thin scrollbar-thumb-outline-variant">
+                        <!-- Summary Parties Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md pt-1 pb-3">
+                            <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                                <span class="text-label-sm font-label-sm text-outline uppercase">Bên A (Khách hàng vay
+                                    mua)</span>
+                                <p class="text-label-lg font-label-lg font-bold text-on-surface mt-1">Nguyễn Hoàng Nam
+                                </p>
+                                <p class="text-body-sm font-body-sm text-on-surface-variant">CCCD số: <span
+                                        class="font-mono font-bold text-on-surface">001201018924</span></p>
+                                <p class="text-body-sm font-body-sm text-on-surface-variant">SĐT liên hệ: 0984 ••• 888
+                                </p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                                <span class="text-label-sm font-label-sm text-outline uppercase">Bên B (Bên cấp tín
+                                    dụng)</span>
+                                <p class="text-label-lg font-label-lg font-bold text-on-surface mt-1">Công ty Tài chính
+                                    TNHH MTV Home Credit VN</p>
+                                <p class="text-body-sm font-body-sm text-on-surface-variant">Mã số thuế: 0307672788</p>
+                                <p class="text-body-sm font-body-sm text-on-surface-variant">Ủy nhiệm phân phối:
+                                    Sóc Mobile Retail</p>
+                            </div>
+                        </div>
+                        <!-- Financial Terms Specifications -->
+                        <div class="pt-3 pb-3 space-y-2.5">
+                            <h3 class="text-label-md font-label-md text-outline uppercase tracking-wider font-bold">Điều
+                                khoản giao dịch thiết bị &amp; Khoản vay</h3>
+                            <div class="flex items-center justify-between text-body-md font-body-md py-1">
+                                <span class="text-on-surface-variant">Thiết bị mua trả góp:</span>
+                                <span class="font-bold text-on-surface text-right">Apple iPhone 16 Pro Max 256GB - Titan
+                                    Sa Mạc</span>
+                            </div>
+                            <div class="flex items-center justify-between text-body-md font-body-md py-1">
+                                <span class="text-on-surface-variant">Tổng giá trị niêm yết:</span>
+                                <span class="font-bold text-on-surface">32.490.000 đ</span>
+                            </div>
+                            <div
+                                class="flex items-center justify-between text-body-md font-body-md py-1 bg-surface-container/50 px-3 py-2 rounded-lg">
+                                <span class="text-on-surface font-medium">Số tiền thanh toán trước tại Shop
+                                    (20%):</span>
+                                <span class="font-extrabold text-secondary font-title-price text-base">6.498.000
+                                    đ</span>
+                            </div>
+                            <div class="flex items-center justify-between text-body-md font-body-md py-1">
+                                <span class="text-on-surface-variant">Tổng số tiền vay trả góp:</span>
+                                <span class="font-bold text-primary">25.992.000 đ</span>
+                            </div>
+                            <div class="flex items-center justify-between text-body-md font-body-md py-1">
+                                <span class="text-on-surface-variant">Lãi suất thực tế ưu đãi:</span>
+                                <span class="inline-flex items-center gap-1 font-bold text-tertiary">
+                                    <span class="material-symbols-outlined text-base">verified</span> 0.0% cố định toàn
+                                    kỳ
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between text-body-md font-body-md py-1">
+                                <span class="text-on-surface-variant">Thời hạn vay:</span>
+                                <span class="font-bold text-on-surface">12 Tháng (12 Kỳ)</span>
+                            </div>
+                            <div
+                                class="flex items-center justify-between text-body-md font-body-md bg-tertiary/10 border border-tertiary/20 p-3 rounded-xl">
+                                <div>
+                                    <p class="font-bold text-on-surface text-label-lg">Số tiền trả định kỳ hàng tháng:
+                                    </p>
+                                    <p class="text-body-sm font-body-sm text-outline">Hạn chót đóng tiền: Ngày 15 hàng
+                                        tháng</p>
+                                </div>
+                                <div class="text-right">
+                                    <span
+                                        class="text-headline-sm font-headline-sm font-extrabold text-tertiary">2.166.000
+                                        đ</span>
+                                    <span class="text-body-sm font-body-sm text-outline block">/tháng</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Legal Commitment Note -->
+                        <div class="pt-3 text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                            Bằng việc xác nhận chữ ký điện tử bên dưới, Bên A cam kết cung cấp đúng thông tin cá nhân và
+                            đã đọc kỹ, đồng ý toàn bộ với các điều khoản bảo mật, nghĩa vụ thanh toán và chính sách thu
+                            hồi công nợ theo Luật Giao dịch Điện tử số 20/2023/QH15.
+                        </div>
+                    </div>
+                </div>
+                <!-- Box 2: E-Signature Canvas Pad -->
+                <div
+                    class="bg-surface-container-lowest rounded-2xl p-space-lg border border-outline-variant/60 shadow-[0px_4px_16px_-2px_rgba(59,91,255,0.04)]">
+                    <div class="flex items-center justify-between mb-space-md">
+                        <div>
+                            <h3 class="text-headline-sm font-headline-sm text-on-surface font-bold">Khung chữ ký điện tử
+                                (E-Signature)</h3>
+                            <p class="text-body-sm font-body-sm text-outline">Chữ ký số có giá trị pháp lý tương đương
+                                chữ ký tay trực tiếp</p>
+                        </div>
+                        <button
+                            class="px-3 py-1.5 rounded-lg border border-outline-variant hover:bg-surface-container text-body-sm font-body-sm font-semibold text-on-surface flex items-center gap-1 transition-colors"
+                            id="btn-resign">
+                            <span class="material-symbols-outlined text-base">refresh</span> Ký lại
+                        </button>
+                    </div>
+                    <!-- Signature Box with Watermark -->
+                    <div
+                        class="relative bg-surface rounded-xl border-2 border-dashed border-primary/40 p-space-lg flex flex-col items-center justify-center min-h-[160px] overflow-hidden group">
+                        <!-- Stamp Overlay (Dấu mộc xác thực điện tử) -->
+                        <div
+                            class="absolute right-4 bottom-3 border-2 border-tertiary text-tertiary rounded-lg px-3 py-1.5 rotate-[-6deg] bg-surface-container-lowest/85 backdrop-blur-sm shadow-sm flex items-center gap-2 pointer-events-none">
+                            <span class="material-symbols-outlined text-2xl font-bold" data-weight="fill"
+                                style="font-variation-settings: 'FILL' 1;">verified</span>
+                            <div>
+                                <p class="text-[10px] uppercase font-extrabold tracking-wider leading-none">ĐÃ KÝ ĐIỆN
+                                    TỬ &amp; XÁC THỰC</p>
+                                <p class="text-[9px] font-semibold text-outline-variant leading-tight">SÓC MOBILE × HOME
+                                    CREDIT</p>
+                            </div>
+                        </div>
+                        <!-- Stylized Signature Preview -->
+                        <div class="font-signature text-5xl md:text-6xl text-primary tracking-wide select-none drop-shadow-sm rotate-[-2deg] transition-all py-2"
+                            id="signature-text">
+                            Nguyen Hoang Nam
+                        </div>
+                        <p class="text-body-sm font-body-sm text-outline mt-2 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm text-tertiary">lock</span>
+                            Xác thực vân tay số: SHA-256 (3a89...c4b2) lúc 14:48:10 hôm nay
+                        </p>
+                    </div>
+                    <!-- Signature Controls -->
+                    <div class="mt-space-md flex flex-wrap items-center justify-between gap-3 pt-space-xs">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input checked=""
+                                class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary"
+                                type="checkbox" />
+                            <span class="text-body-sm font-body-sm text-on-surface">Tôi xác nhận chữ ký trên chính xác
+                                và đúng quy chuẩn</span>
+                        </label>
+                        <button
+                            class="px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-label-md flex items-center gap-1.5 shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                            id="btn-verify-sign">
+                            <span class="material-symbols-outlined text-base">done_all</span> Xác nhận chữ ký số
+                        </button>
+                    </div>
+                </div>
+                <!-- Box 3: Payment Breakdown Schedule Toggle (12 kỳ hạn) -->
+                <div
+                    class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-[0px_4px_16px_-2px_rgba(59,91,255,0.04)] overflow-hidden">
+                    <button
+                        class="w-full px-space-lg py-4 flex items-center justify-between hover:bg-surface-container-low transition-colors text-left"
+                        id="toggle-schedule">
+                        <div class="flex items-center gap-2.5">
+                            <span class="material-symbols-outlined text-primary text-xl">calendar_month</span>
+                            <div>
+                                <h4 class="text-headline-sm font-headline-sm text-on-surface font-bold">Lịch thanh toán
+                                    chi tiết 12 kỳ hạn (0% Lãi suất)</h4>
+                                <p class="text-body-sm font-body-sm text-outline">Bấm để xem hạn đóng và số tiền từng
+                                    tháng</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-outline transition-transform duration-200"
+                            id="schedule-chevron">expand_more</span>
+                    </button>
+                    <!-- Schedule Dropdown Container -->
+                    <div class="px-space-lg pb-space-lg hidden border-t border-outline-variant/30 pt-4"
+                        id="schedule-content">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-body-sm font-body-sm">
+                                <thead>
+                                    <tr
+                                        class="text-outline uppercase text-[11px] border-b border-outline-variant/30 font-bold">
+                                        <th class="pb-2">Kỳ trả</th>
+                                        <th class="pb-2">Ngày đến hạn</th>
+                                        <th class="pb-2">Gốc hàng tháng</th>
+                                        <th class="pb-2">Lãi suất</th>
+                                        <th class="pb-2 text-right">Tổng phải trả</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/20">
+                                    <tr class="bg-tertiary-fixed/15 font-semibold text-tertiary">
+                                        <td class="py-2.5">Kỳ 01</td>
+                                        <td class="py-2.5">15/04/2025</td>
+                                        <td class="py-2.5">2.166.000 đ</td>
+                                        <td class="py-2.5">0 đ (0%)</td>
+                                        <td class="py-2.5 text-right font-bold text-on-surface">2.166.000 đ</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Kỳ 02</td>
+                                        <td class="py-2">15/05/2025</td>
+                                        <td class="py-2">2.166.000 đ</td>
+                                        <td class="py-2">0 đ (0%)</td>
+                                        <td class="py-2 text-right font-medium">2.166.000 đ</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Kỳ 03</td>
+                                        <td class="py-2">15/06/2025</td>
+                                        <td class="py-2">2.166.000 đ</td>
+                                        <td class="py-2">0 đ (0%)</td>
+                                        <td class="py-2 text-right font-medium">2.166.000 đ</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2">Kỳ 04 - 12</td>
+                                        <td class="py-2">15/07/2025 → 15/03/2026</td>
+                                        <td class="py-2">2.166.000 đ/tháng</td>
+                                        <td class="py-2">0 đ (0%)</td>
+                                        <td class="py-2 text-right font-medium">2.166.000 đ/tháng</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-body-sm font-body-sm text-outline mt-3 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">info</span>
+                            Hệ thống Sóc Mobile &amp; Home Credit sẽ tự động gửi thông báo SMS / Zalo nhắc hạn trước 3
+                            ngày.
+                        </p>
+                    </div>
+                </div>
+                <!-- Box 4: Action Tools (Tải PDF & In Phiếu) -->
+                <div class="flex flex-wrap items-center gap-space-md">
+                    <button
+                        class="flex-1 min-w-[200px] h-12 rounded-xl bg-surface-container-high text-primary hover:bg-surface-container-highest border border-primary/20 font-bold text-label-md flex items-center justify-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-xl">download</span>
+                        TẢI BẢN HỢP ĐỒNG PDF ĐẦY ĐỦ
+                    </button>
+                    <button
+                        class="flex-1 min-w-[200px] h-12 rounded-xl bg-surface-container-lowest text-on-surface hover:bg-surface-container border border-outline-variant font-bold text-label-md flex items-center justify-center gap-2 transition-all">
+                        <span class="material-symbols-outlined text-xl">print</span>
+                        IN PHIẾU NHẬN HÀNG TẠI SHOP
+                    </button>
+                </div>
+            </section>
+            <!-- RIGHT COLUMN: THÔNG TIN NHẬN THIẾT BỊ & HƯỚNG DẪN TẠI QUẦY (5 cols) -->
+            <section class="lg:col-span-5 flex flex-col gap-space-lg">
+                <!-- Device Quick Card with Photo -->
+                <div
+                    class="bg-surface-container-lowest rounded-2xl p-space-md border border-outline-variant/60 shadow-[0px_4px_16px_-2px_rgba(59,91,255,0.04)]">
+                    <div class="flex items-center gap-space-md">
+                        <div
+                            class="w-24 h-24 rounded-xl bg-surface-container-low p-2 border border-outline-variant/40 shrink-0 flex items-center justify-center">
+                            <img class="w-full h-full object-contain"
+                                data-alt="A pristine Apple iPhone 16 Pro Max in Desert Titanium resting on a clean minimalist showroom podium under sleek high-key studio lights, emphasizing its textured titanium chassis and modern edge design in high-end consumer tech style."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE7GLyQluJ7JUX0Axc_e_irdGJDPVaanvc5hYNSDgVt7-IxJSvuwRXjif2oQHYJR-PtCxV_dNLo6TKfFic6oW6XkrAOAGTj6YDIXJVw4xX1LbpULeAQu586t3JHQhBr-3febXnJj6Mo3XbCmczaAzbfhVK6HcrYTWV0hHhU94vshw_IXfQkOBwgV3a7odFaK-ipwhzGDTufrGLKd7iEuB5PGV6rbyic_4vm_uYSw-0i18edsdqu7jK-w" />
+                        </div>
+                        <div>
+                            <span
+                                class="px-2 py-0.5 rounded-full bg-secondary-container/15 text-secondary text-label-sm font-label-sm font-bold">
+                                Mã đơn: #PZ-88912
+                            </span>
+                            <h3 class="text-headline-sm font-headline-sm text-on-surface font-extrabold mt-1">
+                                iPhone 16 Pro Max 256GB
+                            </h3>
+                            <p class="text-body-sm font-body-sm text-outline">Màu sắc: Titan Sa Mạc (Desert Titanium) •
+                                Bản VN/A</p>
+                            <div class="mt-1 flex items-baseline gap-2">
+                                <span class="text-title-price font-title-price font-bold text-primary">32.490.000
+                                    đ</span>
+                                <span class="text-body-sm font-body-sm line-through text-outline">34.990.000 đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card: Phương thức nhận máy & QR Code Check-in -->
+                <div
+                    class="bg-surface-container-lowest rounded-2xl p-space-lg border border-outline-variant/60 shadow-[0px_4px_16px_-2px_rgba(59,91,255,0.04)]">
+                    <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+                        <h3 class="text-headline-sm font-headline-sm text-on-surface font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-xl">storefront</span>
+                            Địa điểm nhận máy
+                        </h3>
+                        <span
+                            class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-label-sm font-label-sm font-bold">
+                            Có sẵn hàng
+                        </span>
+                    </div>
+                    <div class="mt-space-md space-y-3">
+                        <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
+                            <p class="text-label-md font-label-md font-bold text-on-surface">Showroom Sóc Mobile Flagship
+                                Duy Tân</p>
+                            <p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5 flex items-start gap-1">
+                                <span
+                                    class="material-symbols-outlined text-base text-primary shrink-0 mt-0.5">location_on</span>
+                                86 Phố Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội
+                            </p>
+                            <div
+                                class="mt-2.5 flex items-center gap-2 text-label-sm font-label-sm text-tertiary font-bold">
+                                <span class="material-symbols-outlined text-base">schedule</span>
+                                Sẵn sàng nhận máy: Hôm nay lúc 15:30 (Sau 30 phút)
+                            </div>
+                        </div>
+                        <!-- QR Code Box for Fast Pick-up -->
+                        <div
+                            class="bg-surface-container-lowest border-2 border-primary/20 rounded-xl p-4 flex flex-col items-center text-center">
+                            <p class="text-label-md font-label-md font-bold text-on-surface mb-2">MÃ QR CHECK-IN TẠI
+                                QUẦY TRẢ GÓP</p>
+                            <!-- Mock QR Graphic -->
+                            <div
+                                class="w-36 h-36 bg-surface-container-lowest p-2 rounded-lg border border-outline-variant shadow-inner flex flex-col items-center justify-center relative group">
+                                <div
+                                    class="w-full h-full bg-slate-900 rounded flex flex-wrap p-2 gap-1 content-between justify-between">
+                                    <!-- QR visual elements -->
+                                    <div
+                                        class="w-8 h-8 bg-white border-4 border-slate-900 rounded-sm flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-slate-900"></div>
+                                    </div>
+                                    <div class="w-12 h-6 bg-slate-200"></div>
+                                    <div
+                                        class="w-8 h-8 bg-white border-4 border-slate-900 rounded-sm flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-slate-900"></div>
+                                    </div>
+                                    <div class="w-full h-3 bg-slate-300"></div>
+                                    <div
+                                        class="w-8 h-8 bg-white border-4 border-slate-900 rounded-sm flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-slate-900"></div>
+                                    </div>
+                                    <div class="w-16 h-8 bg-slate-200"></div>
+                                </div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div
+                                        class="px-2 py-0.5 rounded bg-primary text-on-primary text-[10px] font-extrabold shadow">
+                                        PZ-88912
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="text-body-sm font-body-sm text-outline mt-2">
+                                Đưa mã này cho Chuyên viên tại quầy để lấy máy ngay mà không cần xếp hàng
+                            </span>
+                        </div>
+                    </div>
+                    <!-- 3-Step Pickup Guide at Showroom -->
+                    <div class="mt-space-lg pt-space-md border-t border-outline-variant/30">
+                        <h4
+                            class="text-label-lg font-label-lg font-bold text-on-surface mb-3 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-primary text-base">checklist</span>
+                            Quy trình nhận máy 3 bước tại shop:
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span
+                                    class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-label-sm font-bold shrink-0 mt-0.5">1</span>
+                                <p class="text-body-sm font-body-sm text-on-surface">
+                                    <strong class="font-bold">Xuất trình CCCD gắn chip gốc:</strong> Đảm bảo trùng khớp
+                                    thông tin số <span class="font-mono font-bold">001201018924</span> của Nguyễn Hoàng
+                                    Nam.
+                                </p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span
+                                    class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-label-sm font-bold shrink-0 mt-0.5">2</span>
+                                <p class="text-body-sm font-body-sm text-on-surface">
+                                    <strong class="font-bold">Đóng khoản trả trước:</strong> Thanh toán <span
+                                        class="font-bold text-secondary">6.498.000 đ</span> bằng tiền mặt, quẹt thẻ
+                                    Visa/Mastercard hoặc quét mã VietQR.
+                                </p>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span
+                                    class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-label-sm font-bold shrink-0 mt-0.5">3</span>
+                                <p class="text-body-sm font-body-sm text-on-surface">
+                                    <strong class="font-bold">Khui seal &amp; Chuyển dữ liệu:</strong> Kỹ thuật viên
+                                    Sóc Mobile hỗ trợ dán kính cường lực miễn phí và sao lưu dữ liệu từ điện thoại cũ
+                                    sang iPhone mới.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- PRIMARY CTAS -->
+                    <div class="mt-space-xl space-y-space-sm">
+                        <!-- Coral Primary CTA Button -->
+                        <button
+                            class="w-full h-14 rounded-xl bg-secondary-container text-on-secondary font-extrabold text-label-lg tracking-wide shadow-[0_4px_14px_rgba(255,107,53,0.35)] hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-2xl font-bold">verified</span>
+                            XÁC NHẬN HOÀN TẤT &amp; ĐẾN SHOWROOM NHẬN MÁY
+                        </button>
+                        <!-- Secondary Ghost Button -->
+                        <a class="w-full h-11 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-label-md flex items-center justify-center gap-1.5 transition-colors"
+                            href="#">
+                            <span class="material-symbols-outlined text-lg">arrow_back</span>
+                            Về trang chủ Sóc Mobile
+                        </a>
+                    </div>
+                    <!-- Hotline Assurance -->
+                    <div class="mt-4 pt-3 border-t border-outline-variant/30 text-center">
+                        <p class="text-body-sm font-body-sm text-outline">
+                            Cần hỗ trợ đổi chi nhánh hoặc hẹn lại giờ? Gọi ngay <a
+                                class="text-primary font-bold hover:underline" href="#">1800 6868</a> (Miễn cước 24/7).
+                        </p>
+                    </div>
+                </div>
+                <!-- Trust Seals Commitment Strip -->
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div
+                        class="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 flex flex-col items-center">
+                        <span class="material-symbols-outlined text-tertiary text-2xl">verified</span>
+                        <span class="text-label-sm font-label-sm font-bold text-on-surface mt-1">Bảo hành 12
+                            tháng</span>
+                        <span class="text-[11px] text-outline">Chính hãng Apple VN/A</span>
+                    </div>
+                    <div
+                        class="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 flex flex-col items-center">
+                        <span class="material-symbols-outlined text-primary text-2xl">sync_saved_locally</span>
+                        <span class="text-label-sm font-label-sm font-bold text-on-surface mt-1">1 đổi 1 trong 30
+                            ngày</span>
+                        <span class="text-[11px] text-outline">Lỗi nhà sản xuất</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <!-- FOOTER (Shared Component Source of Truth) -->
+    <footer
+        class="mt-space-2xl bg-surface-container-low dark:bg-inverse-surface border-t border-outline-variant/20 dark:border-outline/20 flat no shadows">
+        <div
+            class="w-full max-w-[1320px] mx-auto px-margin md:px-margin-tablet lg:px-margin-desktop py-space-xl flex flex-col md:flex-row justify-between items-center gap-space-md">
+            <!-- Footer Copyright Text -->
+            <div class="space-y-1.5 text-center md:text-left max-w-2xl">
+                <div class="flex items-center justify-center md:justify-start gap-2">
+                    <span
+                        class="text-headline-sm font-headline-sm font-extrabold text-primary dark:text-inverse-primary">Sóc Mobile</span>
+                    <span class="text-label-sm font-label-sm text-outline font-semibold">| Hệ thống bán lẻ công nghệ
+                        thông minh</span>
+                </div>
+                <p class="text-body-sm font-body-sm text-on-surface-variant dark:text-outline-variant leading-relaxed">
+                    © 2024 Sóc Mobile Việt Nam. Bản quyền thuộc Công ty Cổ phần Bán lẻ Sóc Mobile. Đối tác tài chính: Home
+                    Credit, FE Credit, HD SAISON, Mirae Asset.
+                </p>
+            </div>
+            <!-- Footer Mandatory Links -->
+            <div
+                class="flex flex-wrap items-center justify-center md:justify-end gap-x-space-lg gap-y-2 text-label-sm font-label-sm">
+                <a class="text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150"
+                    href="#">
+                    Chính sách trả góp 0%
+                </a>
+                <a class="text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150"
+                    href="#">
+                    Điều khoản hợp đồng điện tử
+                </a>
+                <a class="text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150"
+                    href="#">
+                    Bảo mật thông tin CCCD
+                </a>
+                <a class="text-on-surface-variant dark:text-outline-variant hover:text-on-surface dark:hover:text-inverse-on-surface hover:text-primary dark:hover:text-inverse-primary transition-colors duration-150"
+                    href="#">
+                    Hệ thống 128 cửa hàng toàn quốc
+                </a>
+                <a class="text-primary dark:text-primary-fixed font-bold hover:underline" href="#">
+                    Hotline thẩm định: 1800 6868
+                </a>
+            </div>
+        </div>
+    </footer>
+    <!-- Micro-Interactions Script -->
+    <script>
+        // Interactive 12-month schedule accordion toggle
+        const toggleBtn = document.getElementById('toggle-schedule');
+        const scheduleContent = document.getElementById('schedule-content');
+        const scheduleChevron = document.getElementById('schedule-chevron');
+
+        if (toggleBtn && scheduleContent && scheduleChevron) {
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = scheduleContent.classList.contains('hidden');
+                if (isHidden) {
+                    scheduleContent.classList.remove('hidden');
+                    scheduleChevron.style.transform = 'rotate(180deg)';
+                } else {
+                    scheduleContent.classList.add('hidden');
+                    scheduleChevron.style.transform = 'rotate(0deg)';
+                }
+            });
+        }
+
+        // Signature pad reset and verify interaction
+        const btnResign = document.getElementById('btn-resign');
+        const signatureText = document.getElementById('signature-text');
+        const btnVerifySign = document.getElementById('btn-verify-sign');
+
+        if (btnResign && signatureText) {
+            btnResign.addEventListener('click', () => {
+                signatureText.classList.add('opacity-0');
+                setTimeout(() => {
+                    signatureText.innerText = 'Nguyễn Hoàng Nam';
+                    signatureText.classList.remove('opacity-0');
+                }, 200);
+            });
+        }
+
+        if (btnVerifySign) {
+            btnVerifySign.addEventListener('click', () => {
+                btnVerifySign.innerHTML = '<span class="material-symbols-outlined text-base">verified</span> Đã xác nhận';
+                btnVerifySign.classList.remove('bg-primary');
+                btnVerifySign.classList.add('bg-tertiary');
+            });
+        }
+    </script>
+</body>
+
+</html>

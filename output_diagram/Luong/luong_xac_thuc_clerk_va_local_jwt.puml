@@ -1,0 +1,83 @@
+@startuml
+' Mục đích: Mô tả cơ chế xác thực đa tầng (ClerkAuthGuard kết hợp Local JWT & Clerk SSO)
+' Nguồn tham chiếu:
+' - Backend Guards: my-web/backend/src/common/guards/clerk-auth.guard.ts, my-web/backend/src/common/guards/roles.guard.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model User)
+
+title Sơ đồ Luồng Nghiệp vụ - Cơ chế Xác thực Đa tầng (Clerk & Local JWT Guard)
+
+skinparam shadowing false
+skinparam monochrome true
+
+start
+
+:Client gửi HTTP Request đến Endpoint bảo vệ;
+:Trích xuất Header: Authorization: Bearer <token>;
+
+if (Có Bearer Token trong Header?) then (Không có)
+    :Ném ngoại lệ UnauthorizedException("Yêu cầu đăng nhập");
+    stop
+else (Có Token)
+endif
+
+partition "Tầng 1: Thử nghiệm Local NestJS JWT" {
+    :Thực hiện jwt.verify(token, localJwtSecret);
+    if (Token ký bởi Local Secret hợp lệ?) then (Hợp lệ)
+        :Trích xuất userId từ payload.sub;
+        :Truy vấn User trong Database bằng userId;
+        
+        if (Tìm thấy User?) then (Có)
+            if (user.status == "BANNED"?) then (Bị khóa)
+                :Ném ngoại lệ UnauthorizedException("Tài khoản của bạn đã bị khóa");
+                stop
+            else (Hoạt động bình thường)
+                :Gán request.user = { sub: user.id, email: user.email, role: user.role };
+                --> "Kiểm tra Phân quyền (RolesGuard)"
+            endif
+        else (Không tìm thấy)
+            :Chuyển sang kiểm tra Tầng 2;
+        endif
+    else (Lỗi giải mã Local JWT)
+        :Chuyển sang kiểm tra Tầng 2;
+    endif
+}
+
+partition "Tầng 2: Thử nghiệm Clerk SSO Token" {
+    :Lấy Clerk Secret Key từ ConfigService;
+    :Thực hiện verifyToken(token, { secretKey });
+    
+    if (Token Clerk hợp lệ và còn hạn?) then (Hợp lệ)
+        :Trích xuất clerkUserId từ payload.sub;
+        :Truy vấn hoặc Đồng bộ User trong Database theo Email/ClerkId;
+        
+        if (user.status == "BANNED"?) then (Bị khóa)
+            :Ném ngoại lệ UnauthorizedException("Tài khoản của bạn đã bị khóa");
+            stop
+        else (Hoạt động)
+            :Gán request.user = { sub: user.id, email: user.email, role: user.role };
+            --> "Kiểm tra Phân quyền (RolesGuard)"
+        endif
+    else (Cả 2 tầng đều thất bại)
+        :Ném ngoại lệ UnauthorizedException("Token không hợp lệ hoặc đã hết hạn");
+        stop
+    endif
+}
+
+partition "Kiểm tra Phân quyền (RolesGuard)" {
+    if (Endpoint có gắn decorator @Roles()?) then (Có yêu cầu quyền)
+        :Lấy danh sách requiredRoles từ Reflector;
+        if (requiredRoles chứa request.user.role?) then (Đủ quyền)
+            :Cho phép Request đi tiếp vào Controller Handler;
+            stop
+        else (Thiếu quyền)
+            :Ném ngoại lệ ForbiddenException("Không có quyền truy cập");
+            stop
+        endif
+    else (Endpoint công khai quyền sau khi đăng nhập)
+        :Cho phép Request đi tiếp vào Controller Handler;
+        stop
+    endif
+}
+
+@enduml
+

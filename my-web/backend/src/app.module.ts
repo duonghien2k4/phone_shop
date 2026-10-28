@@ -17,6 +17,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ProductsModule } from './modules/products/products.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { InstallmentModule } from './modules/installment/installment.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { ProductsModule } from './modules/products/products.module';
     CartModule,
     OrdersModule,
     ProductsModule,
+    WishlistModule,
+    InstallmentModule,
+    AdminModule,
 
     // Feature modules will be added here as they are scaffolded:
     // UserModule, ProductModule, CategoryModule,

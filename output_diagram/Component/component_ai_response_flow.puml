@@ -1,0 +1,26 @@
+@startuml
+title Giám sát AI phía Admin
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 180
+
+actor "Admin" as A
+participant "AiMonitoringTab\n(Dashboard)" as UI
+participant "AdminController\n(/api/admin/ai/...)" as C
+participant "AdminService" as S
+database "PostgreSQL" as DB
+
+A -> UI : 1. Mở tab giám sát AI
+UI -> C : 2. GET /ai/monitoring và /ai/feedbacks
+C -> S : 3. getAiMonitoringStats()\ngetAiFeedbacks()
+S -> DB : 4. Đọc conversations (số phiên chat)
+S -> DB : Đọc messages (lượt phản hồi)
+S -> DB : Đọc ai_feedbacks (đánh giá sao, góp ý)
+DB --> S : Dữ liệu thống kê
+S --> C : Số liệu tổng hợp
+C --> UI : Biểu đồ và danh sách feedback
+UI --> A : Hiển thị dashboard
+
+@enduml

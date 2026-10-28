@@ -9,40 +9,36 @@
 'use client';
 
 import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { authService, LoginDto, RegisterDto } from '@/services/auth.service';
+import { setLocalTokenGetter } from '@/lib/api-client';
 import { toast } from '@/store/useToastStore';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
 import { useCartStore } from '@/store/useCartStore';
-import { handleRefreshToken } from '@/lib/api-client';
 
 export function useAuth() {
   const router = useRouter();
+  const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
   const { user, accessToken, isInitialized, setUser, setAccessToken, setInitialized, logout: clearStore } = useAuthStore();
   const clearCart = useCartStore((state) => state.clearCart);
+
+  // Register local JWT getter so api-client can attach it to authenticated requests
+  useEffect(() => {
+    setLocalTokenGetter(() => {
+      if (typeof window === 'undefined') return null;
+      return window.localStorage.getItem('phoneshop-access-token');
+    });
+    return () => setLocalTokenGetter(null);
+  }, []);
 
   // Initialize and check current session
   const initializeAuth = useCallback(async () => {
     if (isInitialized) return;
 
     try {
-      if (typeof window !== 'undefined') {
-        const demoToken = window.localStorage.getItem('phoneshop-demo-token');
-        const demoUser = window.localStorage.getItem('phoneshop-demo-user');
-
-        if (demoToken && demoUser) {
-          setAccessToken(demoToken);
-          setUser(JSON.parse(demoUser));
-          setInitialized(true);
-          return;
-        }
-      }
-
-      // Attempt to refresh token silently using shared HTTP-only cookie logic
-      const token = await handleRefreshToken();
-      if (token) {
-        // Fetch user profile info via service
-        const profile = await authService.getProfile();
+      const profile = await authService.getProfile();
+      if (profile) {
         setUser(profile);
       }
     } catch {
@@ -50,7 +46,7 @@ export function useAuth() {
     } finally {
       setInitialized(true);
     }
-  }, [isInitialized, setUser, setAccessToken, setInitialized]);
+  }, [isInitialized, setUser, setInitialized]);
 
   // Run initialization once on app load
   useEffect(() => {
@@ -63,17 +59,20 @@ export function useAuth() {
       try {
         const data = await authService.login(credentials);
 
-        setAccessToken(data.accessToken);
         setUser(data.user);
+        if (data.accessToken && data.accessToken !== 'demo-access-token') {
+          setAccessToken(data.accessToken);
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('phoneshop-access-token', data.accessToken);
+          }
+        }
         toast.success(`Chào mừng trở lại, ${data.user.fullName || data.user.email}!`);
 
         // Redirect based on role
-        if (data.user.role === 'ADMIN') {
+        if (data.user.role === 'ADMIN' || data.user.role === 'STAFF') {
           router.push('/admin');
-        } else if (data.user.role === 'STAFF') {
-          router.push('/admin/orders');
         } else {
-          router.push('/');
+          router.push('/shop');
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
@@ -81,7 +80,7 @@ export function useAuth() {
         throw err;
       }
     },
-    [setAccessToken, setUser, router]
+    [setUser, setAccessToken, router]
   );
 
   // Logout handler
@@ -91,10 +90,13 @@ export function useAuth() {
     } catch {
       // Fallback local cleanup even if server request fails
     } finally {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('phoneshop-access-token');
+      }
       clearStore();
       clearCart();
       toast.info('Bạn đã đăng xuất thành công.');
-      router.push('/');
+      router.push('/shop');
     }
   }, [clearStore, clearCart, router]);
 
@@ -117,7 +119,7 @@ export function useAuth() {
   return {
     user,
     accessToken,
-    isAuthenticated: !!accessToken && !!user,
+    isAuthenticated: Boolean(user || isSignedIn),
     isInitialized,
     isCustomer: user?.role === 'CUSTOMER',
     isStaff: user?.role === 'STAFF',

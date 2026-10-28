@@ -1,0 +1,50 @@
+@startuml
+title Luồng xử lý một Request trong Backend NestJS
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 180
+
+actor "Client" as C
+participant "Middleware\n(CORS, Body Parser)" as MW
+participant "Guards\n(ClerkAuth, Roles)" as G
+participant "ValidationPipe\n(DTO)" as P
+participant "Controller" as CT
+participant "Service" as S
+participant "PrismaService" as DB
+database "PostgreSQL" as PG
+participant "ResponseInterceptor" as RI
+participant "ExceptionFilter" as EF
+
+== Luồng thành công ==
+C -> MW : 1. Gửi HTTP Request
+MW -> G : 2. Request đã được parse
+note over G
+  Kiểm tra Bearer Token
+  Kiểm tra quyền (ADMIN, STAFF, CUSTOMER)
+end note
+G -> P : 3. Có quyền, cho đi tiếp
+note over P : Validate dữ liệu bằng class-validator
+P -> CT : 4. DTO hợp lệ
+CT -> S : 5. Gọi hàm nghiệp vụ
+note over S
+  Kiểm tra nghiệp vụ
+  Mở transaction nếu cần
+  Ghi audit trail
+end note
+S -> DB : 6. Truy vấn dữ liệu
+DB -> PG : SQL
+PG --> DB : Kết quả
+DB --> S : Entity
+S --> CT : Kết quả nghiệp vụ
+CT --> RI : Dữ liệu trả về
+RI --> C : 7. 200/201 JSON (statusCode, data)
+
+== Luồng lỗi (ExceptionFilter chỉ chạy khi có exception) ==
+G -[#red]> EF : 401 Unauthorized / 403 Forbidden
+P -[#red]> EF : 400 DTO không hợp lệ
+S -[#red]> EF : 400 / 404 / 409 lỗi nghiệp vụ
+EF -[#red]> C : 4xx/5xx (statusCode, message, timestamp, path)
+
+@enduml

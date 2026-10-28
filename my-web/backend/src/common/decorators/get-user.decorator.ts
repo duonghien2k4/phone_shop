@@ -13,6 +13,7 @@ export interface UserPayload {
   sub: number;
   email: string;
   role: string;
+  clerkUserId?: string;
 }
 
 export const GetUser = createParamDecorator(

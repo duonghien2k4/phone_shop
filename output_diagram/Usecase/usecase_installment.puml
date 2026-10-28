@@ -1,0 +1,75 @@
+@startuml
+' Mục đích: Mô tả quy trình đăng ký, thẩm định và quản trị hồ sơ Trả góp
+' Nguồn tham chiếu:
+' - Frontend Pages: my-web/frontend/src/app/tra-gop/page.tsx, my-web/frontend/src/app/tra-gop/tra-cuu/page.tsx
+' - Frontend Components: my-web/frontend/src/components/features/installment/Step2KycVerification.tsx, Step3AiApproval.tsx, Step4ContractSuccess.tsx, PhoneServicesTab.tsx
+' - Frontend Service & Store: my-web/frontend/src/services/installment.service.ts, my-web/frontend/src/store/useInstallmentFlowStore.ts
+' - Backend Controllers: my-web/backend/src/modules/installment/installment.controller.ts, my-web/backend/src/modules/installment/installment-admin.controller.ts
+' - Backend Service: my-web/backend/src/modules/installment/installment.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model InstallmentApplication, ApplicationStatusHistory, FinancePartner, ShowroomStore)
+
+title Sơ đồ Use Case - Quy trình Đăng ký và Thẩm định Trả góp
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as Customer
+actor "Nhân viên Thẩm định / Admin" as Staff
+
+rectangle "Phân hệ Dịch vụ Trả góp" {
+    package "Khách hàng thực hiện" {
+        usecase "Xem danh sách đối tác & tính toán kỳ hạn" as UC_CalcInstallment
+        usecase "Tải ảnh CCCD mặt trước / sau" as UC_UploadKyc
+        usecase "Ký hợp đồng điện tử (Canvas Signature)" as UC_DigitalSign
+        usecase "Gửi hồ sơ đăng ký trả góp (SUBMITTED)" as UC_SubmitApplication
+        usecase "Tra cứu tiến trình hồ sơ qua mã INS" as UC_TrackApplication
+        usecase "Bổ sung hồ sơ theo yêu cầu (Resubmit)" as UC_ResubmitInfo
+        usecase "Khách hủy hồ sơ trả góp" as UC_CustomerCancel
+    }
+
+    package "Nhân viên / Admin Thẩm định" {
+        usecase "Xem danh sách hồ sơ cần xử lý" as UC_AdminListApps
+        usecase "Nhận hồ sơ thẩm định (Claim -> UNDER_REVIEW)" as UC_ClaimApp
+        usecase "Yêu cầu khách hàng bổ sung giấy tờ (NEED_MORE_INFO)" as UC_RequestInfo
+        usecase "Chuyển hồ sơ sang đối tác tài chính (PARTNER_REVIEW)" as UC_SubmitPartner
+        usecase "Ghi nhận quyết định phê duyệt / từ chối (APPROVED / REJECTED)" as UC_RecordDecision
+        usecase "Liên kết hồ sơ được duyệt với Đơn hàng" as UC_LinkOrder
+        usecase "Nhân viên hủy hồ sơ" as UC_StaffCancel
+    }
+
+    usecase "Lưu lịch sử chuyển trạng thái (Audit Trail)" as UC_LogAuditTrail
+}
+
+Customer --> UC_CalcInstallment
+Customer --> UC_UploadKyc
+Customer --> UC_DigitalSign
+Customer --> UC_SubmitApplication
+Customer --> UC_TrackApplication
+Customer --> UC_ResubmitInfo
+Customer --> UC_CustomerCancel
+
+UC_SubmitApplication ..> UC_UploadKyc : <<include>>
+UC_SubmitApplication ..> UC_DigitalSign : <<include>>
+UC_SubmitApplication ..> UC_LogAuditTrail : <<include>>
+UC_ResubmitInfo ..> UC_LogAuditTrail : <<include>>
+UC_CustomerCancel ..> UC_LogAuditTrail : <<include>>
+
+Staff --> UC_AdminListApps
+Staff --> UC_ClaimApp
+Staff --> UC_RequestInfo
+Staff --> UC_SubmitPartner
+Staff --> UC_RecordDecision
+Staff --> UC_LinkOrder
+Staff --> UC_StaffCancel
+
+UC_ClaimApp ..> UC_LogAuditTrail : <<include>>
+UC_RequestInfo ..> UC_LogAuditTrail : <<include>>
+UC_SubmitPartner ..> UC_LogAuditTrail : <<include>>
+UC_RecordDecision ..> UC_LogAuditTrail : <<include>>
+UC_LinkOrder ..> UC_RecordDecision : <<extend>>
+UC_StaffCancel ..> UC_LogAuditTrail : <<include>>
+
+@enduml
+

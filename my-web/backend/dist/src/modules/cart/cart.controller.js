@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CartController = void 0;
 const common_1 = require("@nestjs/common");
 const get_user_decorator_1 = require("../../common/decorators/get-user.decorator");
-const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const clerk_auth_guard_1 = require("../../common/guards/clerk-auth.guard");
 const cart_item_dto_1 = require("./dto/cart-item.dto");
 const cart_service_1 = require("./cart.service");
 let CartController = class CartController {
@@ -80,7 +80,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CartController.prototype, "clearCart", null);
 exports.CartController = CartController = __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard),
     (0, common_1.Controller)('cart'),
     __metadata("design:paramtypes", [cart_service_1.CartService])
 ], CartController);

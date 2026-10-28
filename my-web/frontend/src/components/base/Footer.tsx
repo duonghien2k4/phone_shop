@@ -8,7 +8,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { APP_CONFIG } from '@/constants/config';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, MapPin, Phone, Mail } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -16,16 +16,16 @@ export default function Footer() {
       <div className="footer-main-content">
         <div className="footer-col">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '24px' }}>🐿️</span>
+            <span style={{ display: 'inline-flex', color: 'var(--color-primary)' }}><MessageCircle size={24} /></span>
             <span style={{ fontWeight: 800, fontSize: '18px', color: 'var(--text-primary)' }}>Sóc Mobile</span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Hệ thống bán lẻ điện thoại chính hãng, laptop, máy tính bảng và phụ kiện công nghệ hàng đầu Việt Nam.
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.6 }}>
-            📍 Trụ sở chính: Số 180 Nguyễn Trãi, Q. Thanh Xuân, Hà Nội<br />
-            📞 Hotline CSKH: {APP_CONFIG.HOTLINE} (8:00 - 22:00)<br />
-            📧 Email: cskh@socmobile.vn
+            <MapPin size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Trụ sở chính: Số 180 Nguyễn Trãi, Q. Thanh Xuân, Hà Nội<br />
+            <Phone size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Hotline CSKH: {APP_CONFIG.HOTLINE} (8:00 - 22:00)<br />
+            <Mail size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Email: cskh@socmobile.vn
           </p>
 
           <a 

@@ -18,7 +18,7 @@ import Header from '@/components/base/Header';
 import Footer from '@/components/base/Footer';
 import SafeImage from '@/components/base/SafeImage';
 import { useCart } from '@/hooks/useCart';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth } from '@/hooks/useAuth';
 import { ordersService, toOrderPaymentMethod } from '@/services/orders.service';
 import { formatVND } from '@/utils/format';
 import { LABELS } from '@/constants/labels';
@@ -27,6 +27,7 @@ import { toast } from '@/store/useToastStore';
 import { CITY_COORDINATES } from '@/utils/locationUtils';
 import { Order, FulfillmentMode, PaymentMethodType } from '@/types/order';
 import VietQrModal from '@/components/features/checkout/VietQrModal';
+import { useRequireClerkAuth } from '@/hooks/useRequireClerkAuth';
 
 const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'];
 
@@ -34,9 +35,10 @@ const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'H�
  * Main Form Handler Component
  * ============================================================================ */
 function CheckoutForm() {
+  const canRender = useRequireClerkAuth();
   const searchParams = useSearchParams();
   const { items, totalPrice, clearCart } = useCart();
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuth();
 
   const fulfillmentFromUrl = searchParams.get('fulfillment') === 'STORE_PICKUP' ? 'STORE_PICKUP' : 'HOME_DELIVERY';
   const voucherCode = searchParams.get('voucher') || '';
@@ -226,12 +228,14 @@ function CheckoutForm() {
   const vietQrUrl = `https://img.vietqr.io/image/${APP_CONFIG.BANK.BANK_ID}-${APP_CONFIG.BANK.ACCOUNT_NO}-compact2.png?amount=${qrTransferAmount}&addInfo=${isDepositMode ? 'COC5' : 'SOC'}${generatedOrderCode}&accountName=${encodeURIComponent(APP_CONFIG.BANK.ACCOUNT_NAME)}`;
 
   if (items.length === 0 && !isSuccess) {
+    if (!canRender) return null;
+
     return (
       <div className="empty-cart-view">
         <CheckCircle2 size={64} className="empty-cart-icon" style={{ color: 'var(--color-primary)' }} />
         <h2>Giỏ hàng của bạn đang trống</h2>
         <p>Quay lại trang chủ để tìm kiếm và đặt hàng.</p>
-        <Link href="/" className="btn btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '12px' }}>
+        <Link href="/shop" className="btn btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '12px' }}>
           Quay lại mua sắm
         </Link>
       </div>
@@ -292,7 +296,7 @@ function CheckoutForm() {
           <Link href={`/orders?code=SOC-${generatedOrderCode}`} className="btn btn-primary" style={{ textDecoration: 'none', padding: '12px 20px', borderRadius: '12px' }}>
             Tra cứu đơn hàng này
           </Link>
-          <Link href="/" className="btn btn-secondary" style={{ textDecoration: 'none', padding: '12px 20px', borderRadius: '12px' }}>
+          <Link href="/shop" className="btn btn-secondary" style={{ textDecoration: 'none', padding: '12px 20px', borderRadius: '12px' }}>
             {LABELS.CHECKOUT.BACK_TO_HOME}
           </Link>
         </div>

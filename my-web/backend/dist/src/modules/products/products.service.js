@@ -18,6 +18,15 @@ const productInclude = {
     images: { orderBy: { sortOrder: 'asc' } },
     variants: { include: { inventory: true } },
 };
+const reviewInclude = {
+    user: {
+        select: {
+            id: true,
+            email: true,
+            profile: { select: { fullName: true, avatarUrl: true } },
+        },
+    },
+};
 let ProductsService = class ProductsService {
     prisma;
     constructor(prisma) {
@@ -112,6 +121,58 @@ let ProductsService = class ProductsService {
             throw new common_1.NotFoundException('Không tìm thấy sản phẩm đang hoạt động');
         }
         return { id, isActive: false };
+    }
+    async getProductReviews(slug) {
+        const product = await this.prisma.product.findFirst({
+            where: { slug, isActive: true },
+            select: { id: true },
+        });
+        if (!product) {
+            throw new common_1.NotFoundException('Không tìm thấy sản phẩm');
+        }
+        const reviews = await this.prisma.review.findMany({
+            where: { productId: product.id, isVisible: true },
+            include: reviewInclude,
+            orderBy: { createdAt: 'desc' },
+        });
+        const total = reviews.length;
+        const avgRating = total > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / total
+            : 0;
+        return { reviews, total, avgRating: Math.round(avgRating * 10) / 10 };
+    }
+    async createOrUpdateReview(slug, userId, data) {
+        if (data.rating < 1 || data.rating > 5) {
+            throw new common_1.BadRequestException('Điểm đánh giá phải từ 1 đến 5');
+        }
+        if (!data.comment || data.comment.trim().length < 5) {
+            throw new common_1.BadRequestException('Nội dung bình luận tối thiểu 5 ký tự');
+        }
+        const product = await this.prisma.product.findFirst({
+            where: { slug, isActive: true },
+            select: { id: true },
+        });
+        if (!product) {
+            throw new common_1.NotFoundException('Không tìm thấy sản phẩm');
+        }
+        const review = await this.prisma.review.upsert({
+            where: { userId_productId: { userId, productId: product.id } },
+            update: {
+                rating: data.rating,
+                comment: data.comment.trim(),
+                isVisible: true,
+            },
+            create: {
+                userId,
+                productId: product.id,
+                rating: data.rating,
+                comment: data.comment.trim(),
+                imageUrls: [],
+                isVisible: true,
+            },
+            include: reviewInclude,
+        });
+        return review;
     }
 };
 exports.ProductsService = ProductsService;

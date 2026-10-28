@@ -1,0 +1,100 @@
+@startuml
+' Mục đích: Mô tả trình tự Khách hàng Tra cứu và Bổ sung thông tin hồ sơ trả góp
+' Nguồn tham chiếu:
+' - Frontend Page: my-web/frontend/src/app/tra-gop/tra-cuu/page.tsx
+' - Frontend Service: my-web/frontend/src/services/installment.service.ts
+' - Backend Controller: my-web/backend/src/modules/installment/installment.controller.ts (GET /api/installment/applications/track/:code, POST /api/installment/applications/:id/resubmit)
+' - Backend Service: my-web/backend/src/modules/installment/installment.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (InstallmentApplication, ApplicationStatusHistory)
+
+title Sơ đồ Trình tự - Tra cứu & Bổ sung Hồ sơ Trả góp (Resubmit Flow)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as Customer
+boundary "Trang Tra cứu Hồ sơ\n(TrackingPage)" as Page
+control "InstallmentService\n(Frontend)" as ClientService
+boundary "InstallmentController\n(Backend)" as Controller
+control "InstallmentService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma)" as DB
+
+== Khách hàng tra cứu tiến độ ==
+Customer -> Page: Nhập Mã hồ sơ (VD: INS-2026-123456)
+activate Page
+
+Page -> ClientService: trackApplication(code)
+activate ClientService
+
+ClientService -> Controller: GET /api/installment/applications/track/:code
+activate Controller
+
+Controller -> BackendService: trackApplication(code)
+activate BackendService
+
+BackendService -> DB: installmentApplication.findFirst({\n  where: { applicationCode: code },\n  include: { financePartner, statusHistory, reviewer }\n})
+activate DB
+DB --> BackendService: Chi tiết hồ sơ và toàn bộ Audit Trail
+deactivate DB
+
+BackendService --> Controller: InstallmentApplication Object
+deactivate BackendService
+
+Controller --> ClientService: HTTP 200 OK
+deactivate Controller
+
+ClientService --> Page: Trả về dữ liệu tiến trình hồ sơ
+deactivate ClientService
+
+Page --> Customer: Hiển thị Timeline trạng thái: "Cần bổ sung thông tin (NEED_MORE_INFO)",\nkèm lý do từ nhân viên thẩm định (additionalInfoNotes)
+
+== Khách hàng bổ sung thông tin & giấy tờ ==
+Customer -> Page: Tải lại ảnh CCCD rõ nét / Cập nhật thu nhập / Nhập ghi chú phản hồi
+Customer -> Page: Bấm "Gửi lại hồ sơ"
+
+Page -> ClientService: resubmitApplication(id, ResubmitInstallmentDto)
+activate ClientService
+
+ClientService -> Controller: POST /api/installment/applications/:id/resubmit\nBody: { notes, idCardFrontUrl, monthlyIncome... }
+activate Controller
+
+Controller -> BackendService: resubmitApplication(id, dto, userId)
+activate BackendService
+
+BackendService -> DB: Bắt đầu prisma.$transaction()
+activate DB
+
+BackendService -> DB: tx.installmentApplication.findUnique({ where: { id } })
+DB --> BackendService: Hồ sơ hiện tại
+
+alt Trạng thái hồ sơ khác NEED_MORE_INFO
+    BackendService --> Controller: throw ConflictException('Chỉ có thể bổ sung khi hồ sơ ở trạng thái NEED_MORE_INFO')
+    Controller --> ClientService: HTTP 409 Conflict
+    ClientService --> Page: Báo lỗi không đúng trạng thái
+    Page --> Customer: Thông báo hồ sơ không thể chỉnh sửa
+else Trạng thái là NEED_MORE_INFO
+    BackendService -> DB: tx.installmentApplication.update({\n  where: { id },\n  data: { status: 'UNDER_REVIEW', customerResponseNotes: dto.notes, ... }\n})
+    DB --> BackendService: Cập nhật thông tin thành công
+
+    BackendService -> DB: tx.applicationStatusHistory.create({\n  data: { applicationId: id, fromStatus: 'NEED_MORE_INFO', toStatus: 'UNDER_REVIEW',\n          action: 'CUSTOMER_RESUBMIT', reason: dto.notes, actorType: 'CUSTOMER' }\n})
+    DB --> BackendService: Ghi lịch sử chuyển trạng thái
+
+    BackendService -> DB: Commit $transaction
+    deactivate DB
+
+    BackendService --> Controller: Hồ sơ cập nhật (status: UNDER_REVIEW)
+    deactivate BackendService
+
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+
+    ClientService --> Page: Bổ sung thành công
+    deactivate ClientService
+
+    Page --> Customer: Thông báo "Hồ sơ đã được gửi lại và đang chờ nhân viên kiểm tra"
+end
+deactivate Page
+
+@enduml
+

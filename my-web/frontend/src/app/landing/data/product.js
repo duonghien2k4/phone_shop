@@ -1,0 +1,195 @@
+export const featuredProduct = {
+  id: "phone-18-pro-max",
+  name: "iPhone 18 Pro Max",
+  brand: "Nova",
+  eyebrow: "THE NEXT GENERATION",
+  tagline: "Power. Precision. Reimagined.",
+  description:
+    "A titanium frame, a camera system built for the way you see the world, and a chip that thinks ahead. This is the most capable phone we've ever made.",
+  price: 1499,
+  currency: "€",
+  accentColor: "#8a7bff",
+  colors: [
+    { name: "Graphite Titanium", hex: "#3a3a3d" },
+    { name: "Desert Titanium", hex: "#b8a586" },
+    { name: "Violet Titanium", hex: "#8a7bff" },
+    { name: "White Titanium", hex: "#e9e8e4" },
+  ],
+  specifications: [
+    { value: "6.9\"", label: "ProMotion Display" },
+    { value: "48MP", label: "Pro Camera System" },
+    { value: "A20", label: "Bionic Chip" },
+    { value: "5000mAh", label: "All-day Battery" },
+    { value: "1TB", label: "Maximum Storage" },
+    { value: "Ti", label: "Aerospace Titanium" },
+  ],
+  showcaseChapters: [
+    {
+      id: "front",
+      rotationY: 0,
+      rotationX: 0,
+      scale: 1,
+      heading: "More power.",
+      sub: "Next-generation performance",
+      detail: "Our fastest chip yet, built to handle anything you throw at it without missing a beat.",
+    },
+    {
+      id: "side",
+      rotationY: 95,
+      rotationX: 4,
+      scale: 1.05,
+      heading: "Engineered from every angle.",
+      sub: "Titanium body · Ultra-thin design",
+      detail: "A refined aerospace-grade titanium frame, thinner and lighter than ever before.",
+    },
+    {
+      id: "rear",
+      rotationY: 178,
+      rotationX: 0,
+      scale: 1.1,
+      heading: "Pro camera system.",
+      sub: "Main · Telephoto · Computational photography",
+      detail: "Three pro lenses working together with advanced computational photography.",
+    },
+    {
+      id: "detail",
+      rotationY: 230,
+      rotationX: -3,
+      scale: 1.05,
+      heading: "All-day performance.",
+      sub: "Battery · Display · Processor",
+      detail: "A massive battery, a brighter display, and a processor tuned for efficiency.",
+    },
+    {
+      id: "hero",
+      rotationY: 360,
+      rotationX: 0,
+      scale: 1,
+      heading: "Explore the full specifications.",
+      sub: "",
+      detail: "",
+      cta: true,
+    },
+  ],
+};
+
+export const categories = [
+  { id: "iphone", name: "iPhone", count: "Apple products", accent: "#8a7bff", href: "/products?search=iPhone" },
+  { id: "samsung", name: "Samsung", count: "Samsung products", accent: "#5fb3ff", href: "/products?search=Samsung" },
+  { id: "xiaomi", name: "Xiaomi", count: "Xiaomi products", accent: "#ff8a5f", href: "/products?search=Xiaomi" },
+  { id: "pixel", name: "Google Pixel", count: "Google products", accent: "#5fff9d", href: "/products?search=Google" },
+  { id: "accessories", name: "Accessories", count: "Shop all products", accent: "#d1d1d6", href: "/products" },
+];
+
+export const featuredProducts = [
+  {
+    id: "p1",
+    brand: "Nova",
+    name: "iPhone 18 Pro Max",
+    spec: "256GB · Violet Titanium",
+    price: 1499,
+    oldPrice: null,
+    rating: 4.9,
+    reviews: 312,
+  },
+  {
+    id: "p2",
+    brand: "Orion",
+    name: "Galaxy Fold X",
+    spec: "512GB · Phantom Black",
+    price: 1699,
+    oldPrice: 1899,
+    rating: 4.8,
+    reviews: 204,
+  },
+  {
+    id: "p3",
+    brand: "Lumen",
+    name: "Xiaomi Ultra 7",
+    spec: "256GB · Ceramic White",
+    price: 999,
+    oldPrice: 1099,
+    rating: 4.7,
+    reviews: 158,
+  },
+  {
+    id: "p4",
+    brand: "Pixelwave",
+    name: "Pixel 10 Pro",
+    spec: "128GB · Mist Blue",
+    price: 899,
+    oldPrice: null,
+    rating: 4.6,
+    reviews: 97,
+  },
+];
+
+export const storeStats = [
+  { value: 10, suffix: "+", label: "Years of experience" },
+  { value: 50, suffix: "K+", label: "Happy customers" },
+  { value: 98, suffix: "%", label: "Customer satisfaction" },
+  { value: 20, suffix: "K+", label: "Products sold" },
+  { value: 12, suffix: "", label: "Stores nationwide" },
+];
+
+export const reviews = [
+  {
+    id: "r1",
+    quote: "Great experience from ordering to delivery.",
+    name: "Minh Tran",
+    rating: 5,
+    product: "iPhone 18 Pro Max",
+    date: "March 2025",
+  },
+  {
+    id: "r2",
+    quote: "Packaging was pristine and the staff actually knew the products.",
+    name: "Lan Pham",
+    rating: 5,
+    product: "Galaxy Fold X",
+    date: "February 2025",
+  },
+  {
+    id: "r3",
+    quote: "Fast shipping, genuine product, warranty card included.",
+    name: "Khoa Nguyen",
+    rating: 4,
+    product: "Xiaomi Ultra 7",
+    date: "January 2025",
+  },
+  {
+    id: "r4",
+    quote: "Best place to upgrade, trade-in process was effortless.",
+    name: "Huong Vo",
+    rating: 5,
+    product: "Pixel 10 Pro",
+    date: "January 2025",
+  },
+];
+
+export const storeLocations = [
+  {
+    id: "hanoi",
+    city: "Hanoi",
+    address: "24 Trang Tien Street, Hoan Kiem District",
+    hours: "9:00 AM – 9:30 PM",
+  },
+  {
+    id: "hcmc",
+    city: "Ho Chi Minh City",
+    address: "88 Dong Khoi Street, District 1",
+    hours: "9:00 AM – 10:00 PM",
+  },
+  {
+    id: "danang",
+    city: "Da Nang",
+    address: "15 Bach Dang Street, Hai Chau District",
+    hours: "9:00 AM – 9:00 PM",
+  },
+  {
+    id: "cantho",
+    city: "Can Tho",
+    address: "5 Hoa Binh Avenue, Ninh Kieu District",
+    hours: "9:00 AM – 9:00 PM",
+  },
+];

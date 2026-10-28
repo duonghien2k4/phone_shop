@@ -1,13 +1,8 @@
 /**
- * api-client.ts
- * Centralized HTTP client for all API calls to the NestJS backend.
- * Features:
- *  - Auto-attach Authorization Bearer token from AuthStore
- *  - Auto-refresh on 401 (token expiry)
- *  - Consistent error handling and toast notifications
- *
- * Related: src/services/*.service.ts, src/store/useAuthStore.ts
- * Pattern: Singleton fetch wrapper with interceptor-like behavior
+ * Centralized HTTP client for the NestJS API.
+ * Supports two auth layers:
+ *  1. Clerk session token (for Clerk-signed users)
+ *  2. Local JWT access token (for email/password-signed users)
  */
 
 const API_BASE_URL =
@@ -26,56 +21,50 @@ export class ApiError extends Error {
 
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
+  _isRetry?: boolean;
 };
 
-async function getAccessToken(): Promise<string | null> {
-  // Dynamic import to avoid circular dependency with auth store
-  const { useAuthStore } = await import('../store/useAuthStore');
-  return useAuthStore.getState().accessToken;
+type ClerkTokenGetter = (options?: {
+  template?: string;
+  skipCache?: boolean;
+}) => Promise<string | null>;
+
+let clerkTokenGetter: ClerkTokenGetter | null = null;
+let localTokenGetter: (() => string | null) | null = null;
+
+export function setClerkTokenGetter(getter: ClerkTokenGetter | null): void {
+  clerkTokenGetter = getter;
 }
 
-async function setAccessToken(token: string | null): Promise<void> {
-  const { useAuthStore } = await import('../store/useAuthStore');
-  useAuthStore.getState().setAccessToken(token);
-}
-
-export async function handleRefreshToken(): Promise<string | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include', // HTTP-Only cookie
-    });
-
-    if (!res.ok) {
-      await setAccessToken(null);
-      return null;
-    }
-
-    const data = (await res.json()) as { data: { accessToken: string } };
-    const newToken = data.data.accessToken;
-    await setAccessToken(newToken);
-    return newToken;
-  } catch {
-    await setAccessToken(null);
-    return null;
-  }
+/** Register a synchronous getter for the local JWT access token. */
+export function setLocalTokenGetter(getter: (() => string | null) | null): void {
+  localTokenGetter = getter;
 }
 
 export async function apiClient<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { skipAuth = false, ...fetchOptions } = options;
-
+  const { skipAuth = false, _isRetry = false, ...fetchOptions } = options;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(fetchOptions.headers as Record<string, string>),
   };
 
   if (!skipAuth) {
-    const token = await getAccessToken();
+    // 1. Try Clerk token first
+    let token: string | null = null;
+    if (clerkTokenGetter) {
+      token = await clerkTokenGetter();
+    }
+
+    // 2. Fall back to local JWT token
+    if (!token && localTokenGetter) {
+      token = localTokenGetter();
+    }
+
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
   }
 
@@ -85,40 +74,29 @@ export async function apiClient<T>(
     credentials: 'include',
   });
 
-  // Auto-refresh on 401
-  if (response.status === 401 && !skipAuth) {
-    const newToken = await handleRefreshToken();
-    if (newToken) {
-      // Retry with new token
-      const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...fetchOptions,
-        headers: {
-          ...headers,
-          Authorization: `Bearer ${newToken}`,
-        },
-        credentials: 'include',
-      });
-
-      if (!retryResponse.ok) {
-        const errorData = (await retryResponse.json()) as { message: string };
-        throw new ApiError(
-          retryResponse.status,
-          errorData.message ?? 'Lỗi xác thực',
-          errorData,
-        );
+  // If 401 and not already retried, force fresh token from Clerk and retry once
+  if (response.status === 401 && !skipAuth && !_isRetry && clerkTokenGetter) {
+    try {
+      const freshToken = await clerkTokenGetter({ skipCache: true });
+      if (freshToken) {
+        return apiClient<T>(endpoint, {
+          ...options,
+          _isRetry: true,
+          headers: {
+            ...fetchOptions.headers,
+            Authorization: `Bearer ${freshToken}`,
+          },
+        });
       }
-
-      const retryData = (await retryResponse.json()) as { data: T };
-      return retryData.data;
+    } catch {
+      // Refresh failed, fall through to error handling
     }
-
-    throw new ApiError(401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
   }
 
   if (!response.ok) {
-    const errorData = (await response.json()) as {
-      message: string | string[];
-      statusCode: number;
+    const errorData = (await response.json().catch(() => ({}))) as {
+      message?: string | string[];
+      statusCode?: number;
     };
     const message = Array.isArray(errorData.message)
       ? errorData.message[0]
@@ -130,32 +108,27 @@ export async function apiClient<T>(
   return result.data;
 }
 
-// HTTP method helpers
 export const api = {
   get: <T>(endpoint: string, options?: RequestOptions) =>
     apiClient<T>(endpoint, { ...options, method: 'GET' }),
-
   post: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     apiClient<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
-
   put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     apiClient<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
-
   patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     apiClient<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     }),
-
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     apiClient<T>(endpoint, { ...options, method: 'DELETE' }),
 };

@@ -2,6 +2,29 @@ import { api } from '@/lib/api-client';
 import { FEATURED_PRODUCTS } from '@/data/mock-products';
 import { MockProduct } from '@/types/product';
 
+export interface ProductReview {
+  id: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+  isVisible: boolean;
+  user: {
+    id: number;
+    email: string;
+    profile: {
+      fullName: string | null;
+      avatarUrl: string | null;
+    } | null;
+  };
+}
+
+export interface ProductReviewsResponse {
+  reviews: ProductReview[];
+  total: number;
+  avgRating: number;
+}
+
 interface ProductQuery {
   search?: string;
   brand?: string;
@@ -17,6 +40,13 @@ interface ProductApiItem {
   description?: string | null;
   basePrice?: number | string | null;
   salePrice?: number | string | null;
+  image?: string | null;
+  badge?: string | null;
+  badgeType?: 'success' | 'warning' | 'danger' | 'info' | string | null;
+  soldCount?: string | null;
+  promotionText?: string | null;
+  installment?: boolean | null;
+  fastDelivery?: boolean | null;
   rating?: number | string | null;
   reviewCount?: number | string | null;
   tags?: string[] | null;
@@ -28,9 +58,15 @@ interface ProductApiItem {
   } | null;
   images?: Array<{ url?: string | null }> | null;
   variants?: Array<{
+    id?: number | null;
+    productId?: number | null;
     storage?: string | null;
+    color?: string | null;
     price?: number | string | null;
+    oldPrice?: number | string | null;
     imageUrl?: string | null;
+    sku?: string | null;
+    ram?: string | null;
   }> | null;
   specs?: {
     screen?: string | null;
@@ -53,7 +89,7 @@ const normalizeProduct = (item: ProductApiItem): MockProduct => {
   const categoryName = item.category?.name || 'Điện thoại';
   const firstVariant = item.variants?.[0];
   const price = toNumber(item.salePrice ?? firstVariant?.price ?? item.basePrice, 0);
-  const image = item.images?.[0]?.url || firstVariant?.imageUrl || FEATURED_PRODUCTS[0]?.image || '';
+  const image = item.image || item.images?.[0]?.url || firstVariant?.imageUrl || FEATURED_PRODUCTS[0]?.image || '';
   const discount = item.salePrice && item.basePrice
     ? Math.max(0, Math.round(((toNumber(item.basePrice) - toNumber(item.salePrice)) / toNumber(item.basePrice)) * 100))
     : 0;
@@ -64,27 +100,36 @@ const normalizeProduct = (item: ProductApiItem): MockProduct => {
     slug: item.slug,
     description: item.description || 'Sản phẩm điện thoại chính hãng',
     price,
-    badge: discount > 0 ? `Giảm -${discount}%` : 'Mới',
-    badgeType: discount > 0 ? 'danger' : 'success',
+    badge: item.badge || (discount > 0 ? `Giảm -${discount}%` : 'Mới'),
+    badgeType: (item.badgeType as any) || (discount > 0 ? 'danger' : 'success'),
     image,
     brand: brandName,
     category: categoryName,
     tags: item.tags?.length ? item.tags : [brandName.toLowerCase(), categoryName.toLowerCase()],
     rating: Number(item.rating ?? 5),
     reviewCount: Number(item.reviewCount ?? 0),
-    soldCount: '1,5k',
-    promotionText: 'Ưu đãi thanh toán quét mã QR & Miễn phí giao hàng hỏa tốc trong 2 giờ',
-    installment: false,
-    fastDelivery: true,
+    soldCount: item.soldCount || '1,5k',
+    promotionText: item.promotionText || 'Ưu đãi thanh toán quét mã QR & Miễn phí giao hàng hỏa tốc trong 2 giờ',
+    installment: item.installment ?? true,
+    fastDelivery: item.fastDelivery ?? true,
     specs: {
       screen: item.specs?.screen || '',
       chip: item.specs?.chip || '',
       ram: item.specs?.ram || '',
     },
-    variants: (item.variants || [{ storage: '128GB', price, oldPrice: price }]).map((variant) => ({
+    variants: (item.variants && item.variants.length > 0
+      ? item.variants
+      : [{ storage: '128GB', price, oldPrice: price }]
+    ).map((variant, idx) => ({
+      id: variant.id ? Number(variant.id) : (Number(item.id) * 10 + idx),
+      productId: Number(item.id),
       storage: variant.storage || '128GB',
+      color: variant.color || undefined,
+      sku: variant.sku || undefined,
+      imageUrl: variant.imageUrl || undefined,
+      ram: variant.ram || undefined,
       price: toNumber(variant.price, price),
-      oldPrice: variant.price ? toNumber(variant.price, price) : price,
+      oldPrice: variant.oldPrice ? toNumber(variant.oldPrice, price) : (variant.price ? toNumber(variant.price, price) : price),
     })),
   };
 };
@@ -128,5 +173,15 @@ export const productService = {
       const product = FEATURED_PRODUCTS.find((item) => item.slug === slug || item.name.toLowerCase().includes(slug.toLowerCase()));
       return product ?? null;
     }
+  },
+
+  getProductReviews: async (slug: string): Promise<ProductReviewsResponse> => {
+    return api.get<ProductReviewsResponse>(`/products/${encodeURIComponent(slug)}/reviews`, {
+      skipAuth: true,
+    });
+  },
+
+  submitReview: async (slug: string, data: { rating: number; comment: string }): Promise<ProductReview> => {
+    return api.post<ProductReview>(`/products/${encodeURIComponent(slug)}/reviews`, data);
   },
 };

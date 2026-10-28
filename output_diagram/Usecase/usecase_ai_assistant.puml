@@ -1,0 +1,46 @@
+@startuml
+' Mục đích: Mô tả nghiệp vụ Trợ lý thông minh AI, So sánh điện thoại và Giám sát AI
+' Nguồn tham chiếu:
+' - Frontend Components & Routes: my-web/frontend/src/components/features/ai/MiniSocChatbox.tsx, my-web/frontend/src/app/api/chat-ai/route.ts, my-web/frontend/src/app/api/compare-ai/route.ts, my-web/frontend/src/components/admin/AiMonitoringTab.tsx
+' - Backend Admin Controller: my-web/backend/src/modules/admin/admin.controller.ts (getAiMonitoringStats, getAiFeedbacks)
+' - External Service: OpenAI API (gpt-4o-mini)
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Conversation, Message, AiFeedback)
+
+title Sơ đồ Use Case - Trợ lý AI và So sánh Thông minh
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as Customer
+actor "Quản trị viên" as Admin
+actor "Cổng OpenAI API" as OpenAIService
+
+rectangle "Phân hệ Trợ lý AI & So sánh" {
+    usecase "Trò chuyện tư vấn với Mini Sóc AI" as UC_ChatAI
+    usecase "Hỏi về showroom, thu cũ, bảo hành, trả góp" as UC_QueryIntents
+    usecase "So sánh thông số 2 thiết bị bằng AI" as UC_CompareAI
+    usecase "Chuyển đổi dự phòng (Fallback Intent Engine)" as UC_FallbackEngine
+    usecase "Xem bảng đối đầu thông số và khuyến nghị" as UC_ViewCompareResult
+
+    usecase "Xem thống kê tương tác trợ lý AI" as UC_MonitorAI
+    usecase "Xem phản hồi và đánh giá của người dùng về AI" as UC_ViewAiFeedbacks
+}
+
+Customer --> UC_ChatAI
+Customer --> UC_CompareAI
+
+UC_ChatAI ..> UC_QueryIntents : <<extend>>
+UC_ChatAI ..> OpenAIService : <<interact>>
+UC_ChatAI ..> UC_FallbackEngine : <<extend>>
+
+UC_CompareAI ..> OpenAIService : <<interact>>
+UC_CompareAI ..> UC_FallbackEngine : <<extend>>
+UC_CompareAI ..> UC_ViewCompareResult : <<include>>
+
+Admin --> UC_MonitorAI
+Admin --> UC_ViewAiFeedbacks
+
+@enduml
+

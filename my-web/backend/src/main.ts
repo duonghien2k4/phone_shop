@@ -9,7 +9,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import * as express from 'express';
 import helmet from 'helmet';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -24,7 +26,7 @@ async function bootstrap(): Promise<void> {
 
   const allowedOriginsStr = configService.get<string>('cors.allowedOrigins');
   const allowedOrigins = allowedOriginsStr
-    ? allowedOriginsStr.split(',').map(url => url.trim())
+    ? allowedOriginsStr.split(',').map((url) => url.trim())
     : [
         frontendUrl,
         'http://localhost:3000',
@@ -38,6 +40,13 @@ async function bootstrap(): Promise<void> {
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
+
+  // Large payload for image upload/signature base64
+  app.use(express.json({ limit: '20mb' }));
+  app.use(express.urlencoded({ limit: '20mb', extended: true }));
+
+  // Static files for uploaded documents
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // CORS
   app.enableCors({

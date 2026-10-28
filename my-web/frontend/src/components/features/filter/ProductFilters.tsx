@@ -11,6 +11,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Gamepad2, Camera, BatteryCharging } from 'lucide-react';
 import { LABELS } from '@/constants/labels';
+import { Button } from '@/components/ui/button';
 
 interface ProductFiltersProps {
   activeCategory: string;
@@ -59,8 +60,9 @@ export default function ProductFilters({
       <div className="filter-row" style={{ paddingBottom: '16px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px' }}>
         <span className="filter-label">{LABELS.FILTERS.CATEGORY_LABEL}</span>
         <div className="filter-options-scroll custom-scrollbar" style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'visible' }}>
-          <button
+          <Button
             type="button"
+            variant={activeCategory === LABELS.FILTERS.CATEGORY_MOBILE ? 'default' : 'outline'}
             className={`filter-chip-btn ${activeCategory === LABELS.FILTERS.CATEGORY_MOBILE ? 'active' : ''}`}
             onClick={() => {
               setActiveCategory(LABELS.FILTERS.CATEGORY_MOBILE);
@@ -68,17 +70,18 @@ export default function ProductFilters({
             }}
           >
             {LABELS.FILTERS.CATEGORY_MOBILE}
-          </button>
+          </Button>
           
           {/* Dropdown Khác */}
           <div style={{ position: 'relative' }} ref={categoryDropdownRef}>
-            <button
+            <Button
               type="button"
+              variant={activeCategory !== LABELS.FILTERS.CATEGORY_MOBILE ? 'default' : 'outline'}
               className={`filter-chip-btn ${activeCategory !== LABELS.FILTERS.CATEGORY_MOBILE ? 'active' : ''}`}
               onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
             >
               {activeCategory === LABELS.FILTERS.CATEGORY_MOBILE ? LABELS.FILTERS.CATEGORY_OTHER : activeCategory} ▾
-            </button>
+            </Button>
             
             {showCategoryDropdown && (
               <div className="category-dropdown-menu" style={{
@@ -131,14 +134,15 @@ export default function ProductFilters({
         <span className="filter-label">{LABELS.FILTERS.BRAND_LABEL}</span>
         <div className="filter-options-scroll custom-scrollbar">
           {brands.map((brand) => (
-            <button
+            <Button
               key={brand}
               type="button"
+              variant={activeBrand === brand ? 'default' : 'outline'}
               className={`filter-chip-btn ${activeBrand === brand ? 'active' : ''}`}
               onClick={() => setActiveBrand(brand)}
             >
               {brand === 'All' ? LABELS.FILTERS.ALL_BRANDS : brand}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -148,19 +152,19 @@ export default function ProductFilters({
         <span className="filter-label">{LABELS.FILTERS.NEED_LABEL}</span>
         <div className="filter-options-scroll custom-scrollbar">
           {needsTags.map((tag) => (
-            <button
+            <Button
               key={tag.value}
               type="button"
+              variant={activeTag === tag.value ? 'default' : 'outline'}
               className={`filter-chip-btn with-icon ${activeTag === tag.value ? 'active' : ''}`}
               onClick={() => setActiveTag(tag.value)}
             >
               {tag.icon && <span className="chip-icon">{tag.icon}</span>}
               {tag.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
     </div>
   );
 }
-

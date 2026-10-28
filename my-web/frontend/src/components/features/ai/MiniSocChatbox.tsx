@@ -11,7 +11,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, HelpCircle } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, HelpCircle, Bot } from 'lucide-react';
 import { LABELS } from '@/constants/labels';
 import AiResponseRenderer from '@/components/features/ai/AiResponseRenderer';
 
@@ -103,7 +103,7 @@ export default function MiniSocChatbox() {
           <X size={26} color="#ffffff" />
         ) : (
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '24px', marginRight: '2px' }}>🐿️</span>
+            <Bot size={24} color="#ffffff" />
             <MessageSquare size={16} color="#ffffff" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--color-primary)', borderRadius: '50%', padding: '1px' }} />
           </div>
         )}
@@ -115,7 +115,7 @@ export default function MiniSocChatbox() {
           {/* Header */}
           <div className="chat-panel-header">
             <span className="chat-panel-title">
-              <span>🐿️</span> {LABELS.CHATBOT.TITLE} <Sparkles size={12} fill="#ffffff" />
+              <Bot size={16} /> {LABELS.CHATBOT.TITLE} <Sparkles size={12} fill="#ffffff" />
             </span>
             <button 
               type="button" 

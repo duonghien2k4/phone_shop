@@ -1,0 +1,99 @@
+@startuml
+' Mục đích: Mô tả trình tự Nộp hồ sơ Đăng ký Trả góp của Khách hàng
+' Nguồn tham chiếu:
+' - Frontend Pages: my-web/frontend/src/app/tra-gop/page.tsx
+' - Frontend Components: my-web/frontend/src/components/features/installment/Step2KycVerification.tsx, Step3AiApproval.tsx, Step4ContractSuccess.tsx
+' - Frontend Store & Service: my-web/frontend/src/store/useInstallmentFlowStore.ts, my-web/frontend/src/services/installment.service.ts
+' - Backend Controller: my-web/backend/src/modules/installment/installment.controller.ts (POST /api/installment/upload, POST /api/installment/applications)
+' - Backend Service: my-web/backend/src/modules/installment/installment.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (InstallmentApplication, ApplicationStatusHistory, FinancePartner)
+
+title Sơ đồ Trình tự - Đăng ký Hồ sơ Trả góp (Customer Installment Flow)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as User
+boundary "Giao diện Đăng ký Trả góp\n(Installment Flow UI)" as UI
+control "useInstallmentFlowStore\n(Zustand)" as Store
+control "InstallmentService\n(Frontend)" as ClientService
+boundary "InstallmentController\n(Backend)" as Controller
+control "InstallmentService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma Transaction)" as DB
+collections "Hệ thống File\n(Uploads Dir)" as FS
+
+User -> UI: Chọn Sản phẩm, Đối tác, Kỳ hạn (6-12-24 tháng), % Trả trước
+activate UI
+
+UI -> Store: setFinancialPlan(partnerId, termMonths, prepaidPercent)
+activate Store
+Store --> UI: Lưu kế hoạch tài chính
+deactivate Store
+
+User -> UI: Bước 2 (KYC): Tải ảnh CCCD trước/sau & Ký chữ ký điện tử trên Canvas
+UI -> ClientService: uploadBase64(cccdFront, 'cccd-front')
+activate ClientService
+ClientService -> Controller: POST /api/installment/upload { base64, prefix }
+activate Controller
+Controller -> BackendService: saveBase64File(base64, prefix)
+activate BackendService
+BackendService -> FS: Ghi file nhị phân vào thư mục /uploads/installment/
+FS --> BackendService: Đường dẫn file cục bộ
+BackendService --> Controller: URL: /uploads/installment/cccd-front-...png
+Controller --> ClientService: { url }
+ClientService --> UI: Lưu URL ảnh CCCD mặt trước
+deactivate BackendService
+deactivate Controller
+deactivate ClientService
+
+note over UI: Tương tự tải lên ảnh CCCD mặt sau và chữ ký điện tử
+
+User -> UI: Bấm "Xác nhận & Nộp hồ sơ" (Step 3: Phê duyệt)
+UI -> ClientService: createApplication(CreateInstallmentApplicationDto)
+activate ClientService
+
+ClientService -> Controller: POST /api/installment/applications\nBody: KYC data, financePartnerId, product info, signatureUrl...
+activate Controller
+
+Controller -> Controller: extractUserIdFromReq(req) (nếu khách đã đăng nhập)
+Controller -> BackendService: createApplication(dto, userId)
+activate BackendService
+
+BackendService -> DB: financePartner.findUnique({ where: { id: dto.financePartnerId } })
+activate DB
+DB --> BackendService: Đối tác tài chính hợp lệ
+deactivate DB
+
+BackendService -> DB: Bắt đầu prisma.$transaction()
+activate DB
+BackendService -> BackendService: Sinh mã hồ sơ duy nhất: INS-YYYY-XXXXXX
+
+BackendService -> DB: tx.installmentApplication.create({\n  data: { applicationCode, status: 'SUBMITTED', isSimulated: true, KYC data... }\n})
+DB --> BackendService: Bản ghi InstallmentApplication đã tạo
+
+BackendService -> DB: tx.applicationStatusHistory.create({\n  data: { applicationId, toStatus: 'SUBMITTED', action: 'CUSTOMER_SUBMIT',\n          actorType: 'CUSTOMER', reason: 'Khách hàng hoàn tất và gửi hồ sơ' }\n})
+DB --> BackendService: Ghi nhận lịch sử thẩm định thành công
+
+BackendService -> DB: Commit $transaction
+deactivate DB
+
+BackendService --> Controller: InstallmentApplication Entity
+deactivate BackendService
+
+Controller --> ClientService: HTTP 201 Created\n{ applicationCode, status: 'SUBMITTED', ... }
+deactivate Controller
+
+ClientService --> UI: Nhận kết quả hồ sơ thành công
+deactivate ClientService
+
+UI -> Store: setCompletedApplication(application)
+activate Store
+Store --> UI: Chuyển sang Bước 4 (Hợp đồng thành công)
+deactivate Store
+
+UI --> User: Hiển thị Mã hồ sơ, chi tiết hợp đồng và link tra cứu tiến độ
+deactivate UI
+
+@enduml
+

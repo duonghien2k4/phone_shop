@@ -1,0 +1,66 @@
+@startuml name luong_tham_dinh_ho_so_tra_gop
+title State Machine - Thẩm định hồ sơ trả góp
+
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam state<<final_ok>> {
+  BackgroundColor #C8E6C9
+}
+skinparam state<<final_bad>> {
+  BackgroundColor #FFCDD2
+}
+skinparam state<<wait>> {
+  BackgroundColor #FFF9C4
+}
+
+state "SUBMITTED\n(Đã gửi)" as SUBMITTED
+state "UNDER_REVIEW\n(Đang kiểm tra)" as UNDER_REVIEW
+state "NEED_MORE_INFO\n(Cần bổ sung)" as NEED_MORE_INFO <<wait>>
+state "PARTNER_REVIEW\n(Chờ đối tác thẩm định)" as PARTNER_REVIEW <<wait>>
+state "APPROVED\n(Được duyệt)" as APPROVED <<final_ok>>
+state "REJECTED\n(Bị từ chối)" as REJECTED <<final_bad>>
+state "CANCELLED\n(Đã hủy)" as CANCELLED <<final_bad>>
+
+[*] --> SUBMITTED : Khách nộp hồ sơ
+
+SUBMITTED --> UNDER_REVIEW : Nhân viên nhận xử lý\nclaimApplication
+SUBMITTED --> CANCELLED : Hủy hồ sơ\ncancelApplication
+
+UNDER_REVIEW --> NEED_MORE_INFO : Hồ sơ thiếu hoặc mờ\nrequestInfo
+UNDER_REVIEW --> REJECTED : Không đạt điều kiện\nrecordDecision
+UNDER_REVIEW --> PARTNER_REVIEW : Hồ sơ hợp lệ\nsubmitToPartner
+
+NEED_MORE_INFO --> UNDER_REVIEW : Khách gửi lại\nresubmitApplication
+NEED_MORE_INFO --> CANCELLED : Khách hủy hồ sơ\ncancelApplication
+
+PARTNER_REVIEW --> APPROVED : Đối tác chấp thuận\nrecordDecision APPROVED
+PARTNER_REVIEW --> REJECTED : Đối tác từ chối\nrecordDecision REJECTED
+
+APPROVED --> [*]
+REJECTED --> [*]
+CANCELLED --> [*]
+
+note right of APPROVED
+  Lưu referenceCode và thời gian duyệt.
+  Tùy chọn: linkOrder để gắn đơn hàng
+  (đơn phải tồn tại và chưa bị hủy).
+end note
+
+note bottom of UNDER_REVIEW
+  Mọi chuyển trạng thái đều ghi
+  application_status_history
+  (action, actor, ghi chú).
+end note
+
+legend right
+  Vàng: đang chờ bên ngoài phản hồi
+  Xanh: kết thúc thành công
+  Đỏ: kết thúc không thành công
+endlegend
+
+@enduml

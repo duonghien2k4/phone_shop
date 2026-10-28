@@ -32,6 +32,7 @@ import Pagination from '@/components/base/Pagination';
 import { FEATURED_PRODUCTS } from '@/data/mock-products';
 import { productService } from '@/services/product.service';
 import { MockProduct } from '@/types/product';
+import CompactProductCard from '@/components/features/product/CompactProductCard';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -143,7 +144,7 @@ function ProductsContent() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <nav style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'flex', gap: '6px' }}>
-                <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Trang chủ</Link>
+                <Link href="/shop" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Cửa hàng</Link>
                 <span>/</span>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Điện thoại chính hãng</span>
               </nav>
@@ -270,10 +271,11 @@ function ProductsContent() {
             <>
               <div id="product-list-top" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px', width: '100%', maxWidth: '100%' }}>
                 {paginatedProducts.map((product) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
-                    onViewDetail={() => setSelectedProduct(product)}
+                  <CompactProductCard
+                    key={product.id}
+                    product={product}
+                      onViewDetail={() => setSelectedProduct(product)}
+                      onClick={() => setSelectedProduct(product)}
                   />
                 ))}
               </div>

@@ -114,7 +114,7 @@ export default function WarrantyPage() {
           
           {/* Breadcrumb */}
           <nav style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', display: 'flex', gap: '6px' }}>
-            <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Trang chủ</Link>
+            <Link href="/shop" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Cửa hàng</Link>
             <span>/</span>
             <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Tra cứu bảo hành IMEI</span>
           </nav>

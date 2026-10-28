@@ -1,0 +1,101 @@
+@startuml
+' Mục đích: Mô tả trình tự Duyệt danh sách, Lọc và Xem chi tiết Sản phẩm
+' Nguồn tham chiếu:
+' - Frontend Pages: my-web/frontend/src/app/shop/page.tsx, my-web/frontend/src/app/products/[slug]/page.tsx
+' - Frontend Service: my-web/frontend/src/services/product.service.ts
+' - Backend Controller: my-web/backend/src/modules/products/products.controller.ts (GET /api/products, GET /api/products/:slug, GET /api/products/:slug/reviews)
+' - Backend Service: my-web/backend/src/modules/products/products.service.ts
+' - Database: my-web/backend/prisma/schema.prisma (Model Product, ProductVariant, Brand, Category, Review)
+
+title Sơ đồ Trình tự - Duyệt và Xem Chi tiết Sản phẩm (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Người dùng" as User
+boundary "Trang Cửa hàng\n(ShopPage)" as ShopPage
+boundary "Trang Chi tiết\n(ProductDetailPage)" as DetailPage
+control "ProductService\n(Frontend)" as ClientService
+boundary "ProductsController\n(Backend)" as Controller
+control "ProductsService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma)" as DB
+
+== Duyệt danh sách & Lọc sản phẩm ==
+User -> ShopPage: Chọn bộ lọc (Hãng, Danh mục, Tầm giá, Sắp xếp)
+activate ShopPage
+
+ShopPage -> ClientService: getProducts({ page, limit, brand, category, sort })
+activate ClientService
+
+ClientService -> Controller: GET /api/products?page=1&limit=12&brand=Apple...
+activate Controller
+
+Controller -> BackendService: findAll(ListProductsDto)
+activate BackendService
+
+BackendService -> DB: product.findMany({\n  where: { isActive: true, brandId, ... },\n  include: { brand, category, variants },\n  orderBy, skip, take\n})
+activate DB
+DB --> BackendService: Danh sách sản phẩm & tổng số trang
+deactivate DB
+
+BackendService --> Controller: { data: products, meta: { total, page, totalPages } }
+deactivate BackendService
+
+Controller --> ClientService: HTTP 200 OK (JSON Products)
+deactivate Controller
+
+ClientService --> ShopPage: Trả về danh sách sản phẩm
+deactivate ClientService
+
+ShopPage --> User: Render danh sách thẻ sản phẩm
+deactivate ShopPage
+
+== Xem chi tiết sản phẩm và biến thể ==
+User -> ShopPage: Click vào một sản phẩm
+activate ShopPage
+ShopPage -> DetailPage: Điều hướng tới /products/[slug]
+deactivate ShopPage
+activate DetailPage
+
+par Gọi chi tiết sản phẩm và danh sách đánh giá
+    DetailPage -> ClientService: getBySlug(slug)
+    activate ClientService
+    ClientService -> Controller: GET /api/products/:slug
+    activate Controller
+    Controller -> BackendService: findOne(slug)
+    activate BackendService
+    BackendService -> DB: product.findUnique({\n  where: { slug },\n  include: { brand, category, variants, images }\n})
+    activate DB
+    DB --> BackendService: Chi tiết sản phẩm & biến thể
+    deactivate DB
+    BackendService --> Controller: Product Object
+    deactivate BackendService
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+    ClientService --> DetailPage: Dữ liệu sản phẩm
+    deactivate ClientService
+else Lấy đánh giá của khách hàng
+    DetailPage -> ClientService: getProductReviews(slug)
+    activate ClientService
+    ClientService -> Controller: GET /api/products/:slug/reviews
+    activate Controller
+    Controller -> BackendService: getProductReviews(slug)
+    activate BackendService
+    BackendService -> DB: review.findMany({\n  where: { product: { slug }, isVisible: true },\n  include: { user: { profile } },\n  orderBy: { createdAt: 'desc' }\n})
+    activate DB
+    DB --> BackendService: Danh sách bình luận & sao
+    deactivate DB
+    BackendService --> Controller: Reviews Array
+    deactivate BackendService
+    Controller --> ClientService: HTTP 200 OK
+    deactivate Controller
+    ClientService --> DetailPage: Dữ liệu đánh giá
+    deactivate ClientService
+end
+
+DetailPage --> User: Hiển thị giao diện chi tiết, ảnh 3D/thư viện ảnh,\nlựa chọn cấu hình dung lượng/màu sắc và đánh giá
+deactivate DetailPage
+
+@enduml
+

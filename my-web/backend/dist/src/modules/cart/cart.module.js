@@ -10,13 +10,14 @@ exports.CartModule = void 0;
 const common_1 = require("@nestjs/common");
 const cart_controller_1 = require("./cart.controller");
 const cart_service_1 = require("./cart.service");
+const clerk_auth_guard_1 = require("../../common/guards/clerk-auth.guard");
 let CartModule = class CartModule {
 };
 exports.CartModule = CartModule;
 exports.CartModule = CartModule = __decorate([
     (0, common_1.Module)({
         controllers: [cart_controller_1.CartController],
-        providers: [cart_service_1.CartService],
+        providers: [cart_service_1.CartService, clerk_auth_guard_1.ClerkAuthGuard],
         exports: [cart_service_1.CartService],
     })
 ], CartModule);

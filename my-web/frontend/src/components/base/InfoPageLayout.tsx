@@ -32,15 +32,15 @@ export default function InfoPageLayout({
       <Header />
 
       {/* Hero Banner */}
-      <div className="info-page-hero">
-        <div className="info-page-hero-inner">
+      <div className="info-page-hero text-white">
+        <div className="info-page-hero-inner text-white">
           <span className="info-page-hero-icon">{icon}</span>
-          <h1 className="info-page-hero-title">{title}</h1>
-          {subtitle && <p className="info-page-hero-subtitle">{subtitle}</p>}
-          <nav className="info-page-breadcrumb">
-            <Link href="/">Trang chủ</Link>
-            <span>/</span>
-            <span>{breadcrumb ?? title}</span>
+          <h1 className="info-page-hero-title text-white font-extrabold">{title}</h1>
+          {subtitle && <p className="info-page-hero-subtitle text-white/90">{subtitle}</p>}
+          <nav className="info-page-breadcrumb text-white">
+            <Link href="/shop" className="text-white hover:underline">Cửa hàng</Link>
+            <span className="text-white/80">/</span>
+            <span className="text-white font-semibold">{breadcrumb ?? title}</span>
           </nav>
         </div>
       </div>

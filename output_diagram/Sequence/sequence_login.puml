@@ -1,0 +1,93 @@
+@startuml
+' Mục đích: Mô tả trình tự đăng nhập qua Email/Mật khẩu cục bộ và thiết lập Refresh Token Cookie
+' Nguồn tham chiếu:
+' - Frontend: my-web/frontend/src/app/login/page.tsx, my-web/frontend/src/services/auth.service.ts, my-web/frontend/src/store/useAuthStore.ts
+' - Backend Controller: my-web/backend/src/modules/auth/auth.controller.ts (POST /api/auth/login)
+' - Backend Service: my-web/backend/src/modules/auth/auth.service.ts
+' - Database: my-web/backend/prisma/schema.prisma (Model User)
+' - Helper: my-web/backend/src/common/utils/bcrypt.helper.ts
+
+title Sơ đồ Trình tự - Đăng nhập Hệ thống (Sequence Diagram)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Người dùng" as User
+boundary "Trang Đăng nhập\n(LoginPage)" as Page
+control "useAuthStore\n(Zustand)" as Store
+control "AuthService\n(Frontend)" as ClientAuth
+boundary "AuthController\n(Backend)" as Controller
+control "AuthService\n(Backend)" as Service
+entity "BcryptHelper" as Bcrypt
+database "PostgreSQL\n(Prisma)" as DB
+
+User -> Page: Nhập Email và Mật khẩu, nhấn "Đăng nhập"
+activate Page
+
+Page -> ClientAuth: login({ email, password })
+activate ClientAuth
+
+ClientAuth -> Controller: POST /api/auth/login\nCredentials: { email, password }
+activate Controller
+
+Controller -> Service: login(LoginDto)
+activate Service
+
+Service -> DB: user.findUnique({ where: { email }, include: { profile } })
+activate DB
+DB --> Service: Thông tin User
+deactivate DB
+
+alt Không tìm thấy tài khoản
+    Service --> Controller: throw UnauthorizedException('Email hoặc mật khẩu không chính xác')
+    Controller --> ClientAuth: HTTP 401 Unauthorized
+    ClientAuth --> Page: Báo lỗi thông tin không chính xác
+    Page --> User: Hiển thị thông báo đăng nhập thất bại
+else Tài khoản tồn tại
+    Service -> Bcrypt: comparePassword(password, user.passwordHash)
+    activate Bcrypt
+    Bcrypt --> Service: Kết quả so khớp (boolean)
+    deactivate Bcrypt
+
+    alt Mật khẩu không khớp
+        Service --> Controller: throw UnauthorizedException('Email hoặc mật khẩu không chính xác')
+        Controller --> ClientAuth: HTTP 401 Unauthorized
+        ClientAuth --> Page: Báo lỗi mật khẩu sai
+        Page --> User: Hiển thị lỗi mật khẩu
+    else Mật khẩu chính xác
+        alt Tài khoản bị khóa (status == BANNED)
+            Service --> Controller: throw UnauthorizedException('Tài khoản đã bị khóa')
+            Controller --> ClientAuth: HTTP 401 Unauthorized
+            ClientAuth --> Page: Báo lỗi tài khoản bị khóa
+            Page --> User: Hiển thị thông báo liên hệ quản trị viên
+        else Tài khoản hợp lệ
+            Service -> Service: Tạo accessToken (JWT, thời hạn 15m)\nTạo refreshToken (JWT, thời hạn 7d)
+            Service -> DB: user.update({\n  where: { id: user.id },\n  data: { refreshToken: hashedToken }\n})
+            activate DB
+            DB --> Service: Cập nhật thành công
+            deactivate DB
+
+            Service --> Controller: { accessToken, refreshToken, user }
+            deactivate Service
+
+            Controller -> Controller: res.cookie('refreshToken', token, {\n  httpOnly: true,\n  sameSite: 'lax',\n  maxAge: 7 ngày\n})
+            Controller --> ClientAuth: HTTP 200 OK\n{ accessToken, user }
+            deactivate Controller
+
+            ClientAuth -> Store: setAuth(user, accessToken)
+            activate Store
+            Store --> ClientAuth: Cập nhật state thành công
+            deactivate Store
+
+            ClientAuth --> Page: Đăng nhập thành công
+            deactivate ClientAuth
+
+            Page --> User: Điều hướng về trang chủ / trang trước đó
+        end
+    end
+end
+deactivate Page
+
+@enduml
+

@@ -85,11 +85,11 @@ export default function HomeBanners() {
               className={`carousel-slide ${index === currentSlide ? 'active' : ''}`}
               style={{ backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.7) 30%, transparent), url(${banner.image})` }}
             >
-              <div className="slide-content">
-                <span className="slide-tag">{LABELS.HOMEPAGE.EXCLUSIVE_TAG}</span>
-                <h2>{banner.title}</h2>
-                <p>{banner.sub}</p>
-                <Link href={banner.link} className="btn btn-primary btn-sm">
+              <div className="slide-content text-white">
+                <span className="text-white font-bold">{LABELS.HOMEPAGE.EXCLUSIVE_TAG}</span>
+                <h2 className="text-white font-bold">{banner.title}</h2>
+                <p className="text-white font-medium">{banner.sub}</p>
+                <Link href={banner.link} className="btn btn-primary btn-sm text-white">
                   {LABELS.HOMEPAGE.SEE_DETAILS} <ArrowRight size={14} />
                 </Link>
               </div>
@@ -125,10 +125,10 @@ export default function HomeBanners() {
               className="side-banner-card"
               style={{ backgroundImage: `linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.85)), url(${banner.image})` }}
             >
-              <div className="side-banner-content">
-                <h3>{banner.title}</h3>
-                <p>{banner.sub}</p>
-                <Link href={banner.link} className="side-banner-link">{LABELS.HOMEPAGE.BUY_NOW_PROMO} &rarr;</Link>
+              <div className="side-banner-content text-white">
+                <h3 className="text-white font-bold">{banner.title}</h3>
+                <p className="text-white font-medium">{banner.sub}</p>
+                <Link href={banner.link} className="side-banner-link text-white font-semibold">{LABELS.HOMEPAGE.BUY_NOW_PROMO} &rarr;</Link>
               </div>
             </div>
           ))}

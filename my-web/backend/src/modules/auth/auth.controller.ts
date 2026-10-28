@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import type { UserPayload } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -62,7 +63,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(ClerkAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(
     @GetUser() user: UserPayload,
@@ -74,7 +75,7 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(ClerkAuthGuard)
   async getProfile(@GetUser() user: UserPayload) {
     return this.authService.getProfile(user.sub);
   }

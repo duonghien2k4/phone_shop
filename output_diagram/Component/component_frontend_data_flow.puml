@@ -1,0 +1,52 @@
+@startuml
+title Luồng dữ liệu phía Frontend (Next.js & Zustand)
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 180
+
+actor "Người dùng" as U
+participant "UI\n(Page, Component)" as UI
+participant "Custom Hook\n(useCart, useAuth...)" as H
+participant "Zustand Store" as ST
+participant "Service\n(cart, orders...)" as SV
+participant "apiClient" as AC
+participant "Backend API\n(/api)" as BE
+participant "ToastStore" as TS
+
+== Luồng thành công ==
+U -> UI : 1. Click / Submit
+UI -> H : 2. Gọi hàm xử lý
+H -> ST : 3. Optimistic update (cập nhật UI ngay)
+ST --> UI : Re-render tức thì
+H -> SV : 4. Gọi API tương ứng
+SV -> AC : 5. api.get / post / put / delete
+note over AC
+  Gắn Bearer Token
+  (Clerk hoặc Local JWT)
+  credentials: include
+end note
+AC -> BE : 6. Fetch Request
+BE --> AC : 7. 200/201 JSON
+AC --> SV : Typed Response
+SV --> H : Dữ liệu chuẩn
+H -> ST : 8. Đồng bộ Server State
+ST --> UI : 9. Re-render, tắt Loading
+
+== Khi gặp 401 (tự động thử lại 1 lần) ==
+BE --> AC : 401 Unauthorized
+note over AC : Lấy token mới (skipCache)
+AC -[#blue]> BE : Retry 1 lần
+BE --> AC : Kết quả sau retry
+
+== Khi gặp lỗi (4xx / 5xx) ==
+BE -[#red]-> AC : Error Response
+note over AC : Parse thành ApiError
+AC -[#red]-> SV : Ném ApiError
+SV -[#red]-> H : Truyền lỗi lên
+H -[#red]> ST : Rollback optimistic update
+H -[#red]> TS : showToast(error)
+TS -[#red]-> UI : Hiển thị Toast đỏ
+
+@enduml

@@ -1,0 +1,68 @@
+@startuml
+title Kiến trúc tổng thể hệ thống Phone Shop
+
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam ArrowColor #444444
+skinparam rectangle {
+  RoundCorner 10
+}
+
+rectangle "1. CLIENT (Browser)" as CLIENT #E3F2FD {
+    component "Storefront\n(Mua sắm)" as FE_Store
+    component "Admin Portal\n(Quản trị)" as FE_Admin
+    component "Mini Sóc AI\n(Chatbox)" as FE_AI
+}
+
+rectangle "2. FRONTEND SERVER - Next.js 16 (Port 3000)" as FRONTEND #E8F5E9 {
+    component "Pages & Layouts\n(App Router)" as Pages
+    component "Route Handlers\n(/api/chat-ai, /api/compare-ai)" as RouteHandlers
+    component "Data Layer\nZustand Stores, Hooks,\nServices, apiClient" as DataLayer
+}
+
+rectangle "3. BACKEND SERVER - NestJS 11 (Port 3001)" as BACKEND #FFF3E0 {
+    component "Common Layer\nGuards, Interceptor, Exception Filter" as Common
+    component "Business Modules\nAuth, Products, Cart, Orders,\nInstallment, Wishlist, Admin" as Modules
+    component "PrismaService\n(PrismaClient + PrismaPg Adapter)" as Prisma
+}
+
+rectangle "4. DATABASE" as DBTIER #F3E5F5 {
+    database "PostgreSQL\n(phone_shop)" as DB
+}
+
+cloud "Dịch vụ bên ngoài" as EXT #FFFDE7 {
+    component "Clerk\n(Authentication)" as Clerk
+    component "OpenAI\n(gpt-4o-mini)" as OpenAI
+}
+
+' ===== Luồng chính (trên xuống dưới) =====
+FE_Store --> Pages
+FE_Admin --> Pages
+FE_AI --> RouteHandlers
+Pages --> DataLayer
+DataLayer --> Common : REST API (/api)
+Common --> Modules
+Modules --> Prisma
+Prisma --> DB : Connection Pool
+
+' ===== Kết nối dịch vụ ngoài =====
+RouteHandlers ..> OpenAI : POST /v1/chat/completions
+FE_Store ..> Clerk : Đăng nhập SSO
+Common ..> Clerk : verifyToken()
+
+note right of DB
+  **Nhóm bảng chính**
+  - Người dùng: users, user_profiles
+  - Sản phẩm: products, product_variants,
+    inventories, brands, categories
+  - Mua hàng: carts, cart_items, orders,
+    order_items, payments
+  - Trả góp: installment_applications,
+    application_status_history,
+    finance_partners
+  - Khác: vouchers, user_vouchers, reviews,
+    wishlist_items, showroom_stores
+end note
+
+@enduml

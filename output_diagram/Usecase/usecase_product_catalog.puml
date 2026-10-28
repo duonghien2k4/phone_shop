@@ -1,0 +1,48 @@
+@startuml
+' Mục đích: Mô tả nghiệp vụ Xem, Tìm kiếm, Lọc danh mục và Đánh giá sản phẩm
+' Nguồn tham chiếu:
+' - Frontend Page & Components: my-web/frontend/src/app/shop/page.tsx, my-web/frontend/src/app/products/[slug]/page.tsx
+' - Frontend Service: my-web/frontend/src/services/product.service.ts
+' - Backend Controller: my-web/backend/src/modules/products/products.controller.ts
+' - Backend Service: my-web/backend/src/modules/products/products.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Product, ProductVariant, Brand, Category, Review)
+
+title Sơ đồ Use Case - Danh mục Sản phẩm và Đánh giá
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách vãng lai" as Guest
+actor "Khách hàng đăng nhập" as Customer
+
+Guest <|-- Customer
+
+rectangle "Phân hệ Sản phẩm & Đánh giá" {
+    usecase "Duyệt danh sách sản phẩm" as UC_ListProducts
+    usecase "Tìm kiếm sản phẩm theo từ khóa" as UC_SearchProducts
+    usecase "Lọc theo Thương hiệu & Danh mục" as UC_FilterProducts
+    usecase "Xem chi tiết thông số kỹ thuật" as UC_ViewDetail
+    usecase "Xem các biến thể (Màu sắc, Dung lượng)" as UC_ViewVariants
+    usecase "Xem danh sách đánh giá & bình luận" as UC_ViewReviews
+    usecase "Gửi đánh giá và chấm điểm sao" as UC_SubmitReview
+    usecase "Xác thực phiên đăng nhập" as UC_AuthCheck
+}
+
+Guest --> UC_ListProducts
+Guest --> UC_SearchProducts
+Guest --> UC_FilterProducts
+Guest --> UC_ViewDetail
+Guest --> UC_ViewReviews
+
+UC_ViewDetail ..> UC_ViewVariants : <<include>>
+UC_SearchProducts ..> UC_ListProducts : <<extend>>
+UC_FilterProducts ..> UC_ListProducts : <<extend>>
+
+Customer --> UC_SubmitReview
+UC_SubmitReview ..> UC_AuthCheck : <<include>>
+UC_SubmitReview ..> UC_ViewDetail : <<extend>>
+
+@enduml
+

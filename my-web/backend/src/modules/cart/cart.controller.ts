@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import type { UserPayload } from '../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { AddCartItemDto, UpdateCartQuantityDto } from './dto/cart-item.dto';
 import { CartService } from './cart.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(ClerkAuthGuard)
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}

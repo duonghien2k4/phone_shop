@@ -7,9 +7,15 @@
  */
 
 export interface ProductVariant {
+  id?: number;
+  productId?: number;
+  sku?: string;
+  color?: string;
   storage: string;
   price: number;
   oldPrice?: number;
+  imageUrl?: string | null;
+  ram?: string | null;
 }
 
 export interface ProductSpecs {

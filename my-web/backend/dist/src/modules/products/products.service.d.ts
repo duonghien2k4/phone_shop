@@ -7,16 +7,6 @@ export declare class ProductsService {
     constructor(prisma: PrismaService);
     findAll(query: ListProductsDto): Promise<{
         items: ({
-            brand: {
-                id: number;
-                name: string;
-                slug: string;
-                logoUrl: string | null;
-                description: string | null;
-                isActive: boolean;
-                createdAt: Date;
-                updatedAt: Date;
-            };
             category: {
                 id: number;
                 name: string;
@@ -26,25 +16,36 @@ export declare class ProductsService {
                 createdAt: Date;
                 updatedAt: Date;
             };
+            brand: {
+                id: number;
+                name: string;
+                slug: string;
+                description: string | null;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                logoUrl: string | null;
+            };
             variants: ({
                 inventory: {
                     id: number;
                     updatedAt: Date;
+                    status: import("@prisma/client").$Enums.StockStatus;
                     variantId: number;
                     stock: number;
                     reserved: number;
-                    status: import("@prisma/client").$Enums.StockStatus;
                 } | null;
             } & {
                 id: number;
                 createdAt: Date;
                 updatedAt: Date;
-                ram: string | null;
                 productId: number;
-                sku: string;
                 color: string;
                 storage: string;
+                ram: string | null;
+                sku: string;
                 price: Prisma.Decimal;
+                oldPrice: Prisma.Decimal | null;
                 imageUrl: string | null;
             })[];
             images: {
@@ -69,6 +70,13 @@ export declare class ProductsService {
             basePrice: Prisma.Decimal;
             salePrice: Prisma.Decimal | null;
             discount: number | null;
+            image: string | null;
+            badge: string | null;
+            badgeType: string | null;
+            soldCount: string | null;
+            promotionText: string | null;
+            installment: boolean;
+            fastDelivery: boolean;
             rating: Prisma.Decimal;
             reviewCount: number;
             isFeatured: boolean;
@@ -82,16 +90,6 @@ export declare class ProductsService {
         };
     }>;
     findOne(slug: string): Promise<{
-        brand: {
-            id: number;
-            name: string;
-            slug: string;
-            logoUrl: string | null;
-            description: string | null;
-            isActive: boolean;
-            createdAt: Date;
-            updatedAt: Date;
-        };
         category: {
             id: number;
             name: string;
@@ -101,25 +99,36 @@ export declare class ProductsService {
             createdAt: Date;
             updatedAt: Date;
         };
+        brand: {
+            id: number;
+            name: string;
+            slug: string;
+            description: string | null;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            logoUrl: string | null;
+        };
         variants: ({
             inventory: {
                 id: number;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.StockStatus;
                 variantId: number;
                 stock: number;
                 reserved: number;
-                status: import("@prisma/client").$Enums.StockStatus;
             } | null;
         } & {
             id: number;
             createdAt: Date;
             updatedAt: Date;
-            ram: string | null;
             productId: number;
-            sku: string;
             color: string;
             storage: string;
+            ram: string | null;
+            sku: string;
             price: Prisma.Decimal;
+            oldPrice: Prisma.Decimal | null;
             imageUrl: string | null;
         })[];
         images: {
@@ -144,22 +153,19 @@ export declare class ProductsService {
         basePrice: Prisma.Decimal;
         salePrice: Prisma.Decimal | null;
         discount: number | null;
+        image: string | null;
+        badge: string | null;
+        badgeType: string | null;
+        soldCount: string | null;
+        promotionText: string | null;
+        installment: boolean;
+        fastDelivery: boolean;
         rating: Prisma.Decimal;
         reviewCount: number;
         isFeatured: boolean;
         tags: string[];
     }>;
     create(dto: CreateProductDto): Promise<{
-        brand: {
-            id: number;
-            name: string;
-            slug: string;
-            logoUrl: string | null;
-            description: string | null;
-            isActive: boolean;
-            createdAt: Date;
-            updatedAt: Date;
-        };
         category: {
             id: number;
             name: string;
@@ -169,25 +175,36 @@ export declare class ProductsService {
             createdAt: Date;
             updatedAt: Date;
         };
+        brand: {
+            id: number;
+            name: string;
+            slug: string;
+            description: string | null;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            logoUrl: string | null;
+        };
         variants: ({
             inventory: {
                 id: number;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.StockStatus;
                 variantId: number;
                 stock: number;
                 reserved: number;
-                status: import("@prisma/client").$Enums.StockStatus;
             } | null;
         } & {
             id: number;
             createdAt: Date;
             updatedAt: Date;
-            ram: string | null;
             productId: number;
-            sku: string;
             color: string;
             storage: string;
+            ram: string | null;
+            sku: string;
             price: Prisma.Decimal;
+            oldPrice: Prisma.Decimal | null;
             imageUrl: string | null;
         })[];
         images: {
@@ -212,6 +229,13 @@ export declare class ProductsService {
         basePrice: Prisma.Decimal;
         salePrice: Prisma.Decimal | null;
         discount: number | null;
+        image: string | null;
+        badge: string | null;
+        badgeType: string | null;
+        soldCount: string | null;
+        promotionText: string | null;
+        installment: boolean;
+        fastDelivery: boolean;
         rating: Prisma.Decimal;
         reviewCount: number;
         isFeatured: boolean;
@@ -220,5 +244,52 @@ export declare class ProductsService {
     deactivate(id: number): Promise<{
         id: number;
         isActive: boolean;
+    }>;
+    getProductReviews(slug: string): Promise<{
+        reviews: ({
+            user: {
+                id: number;
+                email: string;
+                profile: {
+                    fullName: string | null;
+                    avatarUrl: string | null;
+                } | null;
+            };
+        } & {
+            id: number;
+            createdAt: Date;
+            updatedAt: Date;
+            rating: number;
+            productId: number;
+            userId: number;
+            comment: string | null;
+            imageUrls: string[];
+            isVisible: boolean;
+        })[];
+        total: number;
+        avgRating: number;
+    }>;
+    createOrUpdateReview(slug: string, userId: number, data: {
+        rating: number;
+        comment: string;
+    }): Promise<{
+        user: {
+            id: number;
+            email: string;
+            profile: {
+                fullName: string | null;
+                avatarUrl: string | null;
+            } | null;
+        };
+    } & {
+        id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        rating: number;
+        productId: number;
+        userId: number;
+        comment: string | null;
+        imageUrls: string[];
+        isVisible: boolean;
     }>;
 }

@@ -1,246 +1,208 @@
 'use client';
 
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  Box,
-  ChevronRight,
-  LayoutDashboard,
-  LogOut,
-  Package,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  ShoppingCart,
-  Users,
-} from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api-client';
 import { useAuthStore } from '@/store/useAuthStore';
-import styles from './page.module.css';
+import { useRequireClerkAuth } from '@/hooks/useRequireClerkAuth';
+import { adminService, DashboardData } from '@/services/admin.service';
 
-type Inventory = { stock: number; status: string } | null;
-type Product = {
-  id: number;
-  name: string;
-  slug: string;
-  basePrice: number | string;
-  salePrice: number | string | null;
-  isFeatured: boolean;
-  brand: { name: string };
-  category: { name: string };
-  variants: Array<{ inventory: Inventory }>;
-};
-
-type ProductResponse = {
-  items: Product[];
-  pagination: { total: number };
-};
-
-function formatPrice(value: number | string | null) {
-  if (value === null) return '-';
-  return `${Number(value).toLocaleString('vi-VN')}đ`;
-}
+// Admin layout & tabs
+import { AdminSidebar, AdminTab } from '@/components/admin/AdminSidebar';
+import { AdminHeader } from '@/components/admin/AdminHeader';
+import { DashboardTab } from '@/components/admin/DashboardTab';
+import { ProductsTab } from '@/components/admin/ProductsTab';
+import { BrandsCategoriesTab } from '@/components/admin/BrandsCategoriesTab';
+import { InventoryTab } from '@/components/admin/InventoryTab';
+import { OrdersTab } from '@/components/admin/OrdersTab';
+import { PaymentsTab } from '@/components/admin/PaymentsTab';
+import { VouchersTab } from '@/components/admin/VouchersTab';
+import { ReviewsTab } from '@/components/admin/ReviewsTab';
+import {
+  FinancePartnersTab,
+  InstallmentAppsTab,
+  TradeInTab,
+  WarrantyTab,
+} from '@/components/admin/PhoneServicesTab';
+import { AiMonitoringTab } from '@/components/admin/AiMonitoringTab';
 
 export default function AdminPage() {
   const router = useRouter();
+  const canRender = useRequireClerkAuth();
   const { user, isInitialized, isAdmin, isStaff } = useAuth();
   const clearAuth = useAuthStore((state) => state.logout);
   const [isPreview] = useState(
-    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1',
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
   );
-  const [products, setProducts] = useState<Product[]>([]);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [actionId, setActionId] = useState<number | null>(null);
 
-  const loadProducts = async (query = '') => {
-    setIsLoading(true);
-    setError('');
+  const [currentTab, setCurrentTab] = useState<AdminTab>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+
+  // Load initial dashboard metrics for badges and summary
+  const loadDashboard = async () => {
+    setIsLoadingDashboard(true);
     try {
-      const result = await api.get<ProductResponse>(
-        `/products?limit=8${query ? `&search=${encodeURIComponent(query)}` : ''}`,
-      );
-      setProducts(result.items);
-      setTotalProducts(result.pagination.total);
+      const data = await adminService.getDashboardStats();
+      setDashboardData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách sản phẩm');
+      console.error('Lỗi tải dashboard stats:', err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingDashboard(false);
     }
   };
 
   useEffect(() => {
-    if (!isPreview && isInitialized && !isAdmin && !isStaff) {
-      router.replace('/login');
+    if (isPreview) {
+      void loadDashboard();
       return;
     }
-    if (isPreview || (isInitialized && (isAdmin || isStaff))) {
-      void (async () => {
-        await loadProducts();
-      })();
+    // If logged in via internal admin login (user is admin or staff)
+    if (user && (isAdmin || isStaff)) {
+      void loadDashboard();
+      return;
     }
-  }, [isInitialized, isAdmin, isStaff, isPreview, router]);
-
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    void loadProducts(search.trim());
-  };
-
-  const handleDeactivate = async (product: Product) => {
-    if (!window.confirm(`Ẩn sản phẩm "${product.name}" khỏi cửa hàng?`)) return;
-    setActionId(product.id);
-    try {
-      await api.delete(`/products/${product.id}`);
-      setProducts((current) => current.filter((item) => item.id !== product.id));
-      setTotalProducts((current) => Math.max(0, current - 1));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể cập nhật sản phẩm');
-    } finally {
-      setActionId(null);
+    if (!canRender || !isInitialized) return;
+    if (!isAdmin && !isStaff) {
+      router.replace('/admin/login');
+      return;
     }
-  };
+    void loadDashboard();
+  }, [canRender, isInitialized, user, isAdmin, isStaff, isPreview, router]);
 
   const handleLogout = () => {
     clearAuth();
-    router.replace('/login');
+    router.replace('/admin/login');
   };
 
-  if (!isPreview && (!isInitialized || (!isAdmin && !isStaff))) {
+  const isAuthorized = isPreview || (user && (isAdmin || isStaff)) || (canRender && (isAdmin || isStaff));
+
+  if (!isAuthorized) {
     return (
-      <main className={styles.loadingScreen}>
-        <ShieldCheck size={28} />
-        <p>Đang xác thực quyền truy cập...</p>
+      <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white space-y-3">
+        <ShieldCheck size={36} className="text-blue-500 animate-pulse" />
+        <p className="text-sm font-semibold tracking-wide">Đang xác thực quyền truy cập Quản trị viên...</p>
       </main>
     );
   }
 
-  const stockCount = products.reduce(
-    (total, product) =>
-      total + product.variants.reduce((variantTotal, variant) => variantTotal + (variant.inventory?.stock ?? 0), 0),
-    0,
-  );
+  // Map tab labels
+  const tabMetadata: Record<AdminTab, { label: string; group: string }> = {
+    dashboard: { label: 'Dashboard', group: 'A. TỔNG QUAN' },
+    products: { label: 'Sản phẩm & Biến thể', group: 'B. KINH DOANH' },
+    brands_categories: { label: 'Thương hiệu & Danh mục', group: 'B. KINH DOANH' },
+    inventory: { label: 'Kho hàng & Tồn kho', group: 'B. KINH DOANH' },
+    orders: { label: 'Đơn hàng', group: 'B. KINH DOANH' },
+    payments: { label: 'Thanh toán', group: 'B. KINH DOANH' },
+    vouchers: { label: 'Voucher & Mã giảm giá', group: 'C. MARKETING' },
+    reviews: { label: 'Đánh giá sản phẩm', group: 'C. MARKETING' },
+    finance_partners: { label: 'Đối tác trả góp', group: 'D. DỊCH VỤ ĐIỆN THOẠI' },
+    installment_apps: { label: 'Hồ sơ trả góp', group: 'D. DỊCH VỤ ĐIỆN THOẠI' },
+    trade_in: { label: 'Thu cũ đổi mới', group: 'D. DỊCH VỤ ĐIỆN THOẠI' },
+    warranty: { label: 'Bảo hành & Đổi trả', group: 'D. DỊCH VỤ ĐIỆN THOẠI' },
+    ai_monitoring: { label: 'Giám sát trợ lý AI', group: 'E. VẬN HÀNH' },
+  };
+
+  const currentMeta = tabMetadata[currentTab];
 
   return (
-    <main className={styles.shell}>
-      <aside className={styles.sidebar}>
-        <div className={styles.brandMark}>
-          <span className={styles.brandIcon}>S</span>
-          <div>
-            <strong>Sóc Mobile</strong>
-            <small>Control room</small>
+    <div className="flex h-screen bg-slate-100 font-sans antialiased overflow-hidden text-slate-800">
+      {/* Sidebar with 5 Main Categories & 13 Distinct Tabs */}
+      <AdminSidebar
+        currentTab={currentTab}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+          setSearchQuery('');
+        }}
+        badgeCounts={{
+          orders: dashboardData?.overview?.pendingOrders ? `${dashboardData.overview.pendingOrders} mới` : undefined,
+          inventory: dashboardData?.overview?.lowStockVariants ? `${dashboardData.overview.lowStockVariants} thiếu` : undefined,
+          installment_apps: 3,
+          trade_in: 3,
+        }}
+        onLogout={handleLogout}
+      />
+
+      {/* Main Area: Top Header + Tab Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <AdminHeader
+          currentTab={currentTab}
+          tabLabel={currentMeta.label}
+          groupLabel={currentMeta.group}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          user={user}
+          onLogout={handleLogout}
+        />
+
+        {/* Content Area with Max Width Container */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto pb-12">
+            {/* A. TỔNG QUAN */}
+            {currentTab === 'dashboard' && (
+              <DashboardTab
+                data={dashboardData}
+                onNavigateTab={(t) => setCurrentTab(t)}
+              />
+            )}
+
+            {/* B. KINH DOANH */}
+            {currentTab === 'products' && (
+              <ProductsTab searchQuery={searchQuery} />
+            )}
+
+            {currentTab === 'brands_categories' && (
+              <BrandsCategoriesTab />
+            )}
+
+            {currentTab === 'inventory' && (
+              <InventoryTab searchQuery={searchQuery} />
+            )}
+
+            {currentTab === 'orders' && (
+              <OrdersTab searchQuery={searchQuery} />
+            )}
+
+            {currentTab === 'payments' && (
+              <PaymentsTab />
+            )}
+
+            {/* C. MARKETING */}
+            {currentTab === 'vouchers' && (
+              <VouchersTab searchQuery={searchQuery} />
+            )}
+
+            {currentTab === 'reviews' && (
+              <ReviewsTab />
+            )}
+
+            {/* D. DỊCH VỤ ĐIỆN THOẠI */}
+            {currentTab === 'finance_partners' && (
+              <FinancePartnersTab />
+            )}
+
+            {currentTab === 'installment_apps' && (
+              <InstallmentAppsTab />
+            )}
+
+            {currentTab === 'trade_in' && (
+              <TradeInTab />
+            )}
+
+            {currentTab === 'warranty' && (
+              <WarrantyTab searchQuery={searchQuery} />
+            )}
+
+            {/* E. VẬN HÀNH */}
+            {currentTab === 'ai_monitoring' && (
+              <AiMonitoringTab />
+            )}
           </div>
-        </div>
-
-        <nav className={styles.navigation} aria-label="Điều hướng quản trị">
-          <span className={styles.navLabel}>TỔNG QUAN</span>
-          <button className={`${styles.navItem} ${styles.navItemActive}`} type="button">
-            <LayoutDashboard size={18} /> Dashboard
-          </button>
-          <button className={styles.navItem} type="button">
-            <Package size={18} /> Sản phẩm <span>Đang dùng</span>
-          </button>
-          <button className={styles.navItem} type="button">
-            <ShoppingCart size={18} /> Đơn hàng <span>0</span>
-          </button>
-          <button className={styles.navItem} type="button">
-            <Users size={18} /> Khách hàng <span>0</span>
-          </button>
-        </nav>
-
-        <div className={styles.sidebarBottom}>
-          <Link href="/" className={styles.backLink}>
-            <ArrowLeft size={16} /> Về cửa hàng
-          </Link>
-          <button className={styles.logoutButton} type="button" onClick={handleLogout}>
-            <LogOut size={16} /> Đăng xuất
-          </button>
-        </div>
-      </aside>
-
-      <section className={styles.content}>
-        <header className={styles.topbar}>
-          <div>
-            <p className={styles.eyebrow}>THỨ BA, 22 THÁNG 9, 2026</p>
-            <h1>Xin chào, {user?.fullName || user?.email}</h1>
-          </div>
-          <div className={styles.profileBadge}>
-            <span>{user?.fullName?.slice(0, 1).toUpperCase() || 'A'}</span>
-            <div>
-              <strong>{user?.role}</strong>
-              <small>Đang hoạt động</small>
-            </div>
-            <ChevronRight size={16} />
-          </div>
-        </header>
-
-        <div className={styles.pageHeading}>
-          <div>
-            <p className={styles.eyebrow}>OPERATIONS / CATALOG</p>
-            <h2>Trung tâm quản trị</h2>
-            <p className={styles.muted}>Theo dõi danh mục và tồn kho từ một nơi.</p>
-          </div>
-          <button className={styles.refreshButton} type="button" onClick={() => void loadProducts(search)} disabled={isLoading}>
-            <RefreshCw size={16} className={isLoading ? styles.spinning : ''} /> Làm mới
-          </button>
-        </div>
-        {isPreview && <div className={styles.previewNotice}>Chế độ xem thử: thao tác dữ liệu cần đăng nhập Admin và backend có database.</div>}
-
-        <section className={styles.statsGrid} aria-label="Tổng quan số liệu">
-          <article className={styles.statCard}>
-            <span className={styles.statIconBlue}><Package size={18} /></span>
-            <div><small>TỔNG SẢN PHẨM</small><strong>{totalProducts}</strong><p>Đang kinh doanh</p></div>
-          </article>
-          <article className={styles.statCard}>
-            <span className={styles.statIconGreen}><Box size={18} /></span>
-            <div><small>TỒN KHO ĐANG TẢI</small><strong>{stockCount.toLocaleString('vi-VN')}</strong><p>Trong 8 sản phẩm gần nhất</p></div>
-          </article>
-          <article className={styles.statCard}>
-            <span className={styles.statIconOrange}><ShoppingCart size={18} /></span>
-            <div><small>ĐƠN HÀNG HÔM NAY</small><strong>0</strong><p>Chưa kết nối Order API</p></div>
-          </article>
-        </section>
-
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div><h3>Danh mục sản phẩm</h3><p>Danh sách hiện tại từ backend</p></div>
-            <form className={styles.searchForm} onSubmit={handleSearch}>
-              <Search size={17} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên sản phẩm..." aria-label="Tìm sản phẩm" />
-            </form>
-          </div>
-
-          {error && <p className={styles.errorMessage}>{error}</p>}
-          {isLoading ? (
-            <div className={styles.emptyState}>Đang tải dữ liệu sản phẩm...</div>
-          ) : products.length === 0 ? (
-            <div className={styles.emptyState}>Chưa có sản phẩm phù hợp.</div>
-          ) : (
-            <div className={styles.tableWrap}>
-              <table>
-                <thead><tr><th>SẢN PHẨM</th><th>THƯƠNG HIỆU</th><th>GIÁ BÁN</th><th>TỒN KHO</th><th>TRẠNG THÁI</th><th /></tr></thead>
-                <tbody>
-                  {products.map((product) => {
-                    const stock = product.variants.reduce((total, variant) => total + (variant.inventory?.stock ?? 0), 0);
-                    return <tr key={product.id}>
-                      <td><strong>{product.name}</strong><small>{product.category.name}</small></td>
-                      <td>{product.brand.name}</td>
-                      <td><strong>{formatPrice(product.salePrice ?? product.basePrice)}</strong></td>
-                      <td>{stock}</td>
-                      <td><span className={stock > 0 ? styles.statusActive : styles.statusWarning}>{stock > 0 ? 'Đang bán' : 'Hết hàng'}</span></td>
-                      <td><button className={styles.deleteButton} type="button" onClick={() => void handleDeactivate(product)} disabled={actionId === product.id}>Ẩn</button></td>
-                    </tr>;
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      </section>
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }

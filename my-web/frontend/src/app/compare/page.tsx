@@ -93,7 +93,7 @@ export default function ComparePage() {
           
           {/* Page Title & Back Link */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <Link href="/" className="auth-back-link" style={{ fontSize: '13px' }}>
+            <Link href="/shop" className="auth-back-link" style={{ fontSize: '13px' }}>
               <ArrowLeft size={14} /> Quay về trang chủ
             </Link>
             <h1 className="cart-header-title" style={{ margin: 0, fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

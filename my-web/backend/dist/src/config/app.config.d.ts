@@ -10,6 +10,9 @@ export declare const appConfig: () => {
         accessExpiresIn: string;
         refreshExpiresIn: string;
     };
+    clerk: {
+        secretKey: string;
+    };
     redis: {
         host: string;
         port: number;

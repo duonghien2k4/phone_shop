@@ -1,0 +1,50 @@
+@startuml
+' Mục đích: Mô tả nghiệp vụ Xác thực và Quản lý tài khoản người dùng
+' Nguồn tham chiếu:
+' - Frontend: my-web/frontend/src/app/login/page.tsx, my-web/frontend/src/app/register/page.tsx
+' - Frontend Service & Store: my-web/frontend/src/services/auth.service.ts, my-web/frontend/src/store/useAuthStore.ts
+' - Backend Controller: my-web/backend/src/modules/auth/auth.controller.ts
+' - Backend Service & Guards: my-web/backend/src/modules/auth/auth.service.ts, my-web/backend/src/common/guards/clerk-auth.guard.ts, my-web/backend/src/common/guards/jwt-auth.guard.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model User, UserProfile)
+
+title Sơ đồ Use Case - Xác thực và Tài khoản Người dùng
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách vãng lai" as Guest
+actor "Người dùng đã đăng nhập" as Customer
+actor "Hệ thống xác thực Clerk" as ClerkSystem
+
+Guest <|-- Customer
+
+rectangle "Hệ thống Xác thực Phone Shop" {
+    usecase "Đăng ký tài khoản" as UC_Register
+    usecase "Đăng nhập Email / Mật khẩu" as UC_LoginLocal
+    usecase "Đăng nhập qua Clerk SSO" as UC_LoginClerk
+    usecase "Làm mới Token (Refresh Token)" as UC_RefreshToken
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Xem thông tin cá nhân (Profile)" as UC_ViewProfile
+    usecase "Cập nhật thông tin hồ sơ" as UC_UpdateProfile
+    usecase "Xác thực danh tính (Clerk/JWT Guard)" as UC_VerifyAuth
+}
+
+Guest --> UC_Register
+Guest --> UC_LoginLocal
+Guest --> UC_LoginClerk
+
+UC_LoginClerk ..> ClerkSystem : <<interact>>
+
+Customer --> UC_Logout
+Customer --> UC_ViewProfile
+Customer --> UC_UpdateProfile
+
+UC_Logout ..> UC_VerifyAuth : <<include>>
+UC_ViewProfile ..> UC_VerifyAuth : <<include>>
+UC_UpdateProfile ..> UC_VerifyAuth : <<include>>
+UC_ViewProfile ..> UC_RefreshToken : <<extend>>
+
+@enduml
+

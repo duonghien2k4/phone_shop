@@ -1,0 +1,100 @@
+@startuml name sequence_checkout
+' Mục đích: Mô tả trình tự Đặt hàng, Áp dụng Voucher và Tạo Đơn hàng trong Transaction
+' Nguồn tham chiếu:
+' - Frontend Page: my-web/frontend/src/app/checkout/page.tsx
+' - Frontend Service: my-web/frontend/src/services/orders.service.ts
+' - Backend Guard: my-web/backend/src/common/guards/clerk-auth.guard.ts
+' - Backend Controller: my-web/backend/src/modules/orders/orders.controller.ts (POST /api/orders)
+' - Backend Service: my-web/backend/src/modules/orders/orders.service.ts
+' - Database Entity: my-web/backend/prisma/schema.prisma (Model Order, OrderItem, Voucher, UserVoucher, Cart, CartItem)
+
+title Sơ đồ Trình tự - Đặt hàng và Áp dụng Voucher (Checkout Sequence)
+
+autonumber
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Khách hàng" as User
+boundary "Trang Thanh toán\n(CheckoutPage)" as Page
+control "OrdersService\n(Frontend)" as ClientService
+boundary "ClerkAuthGuard\n(Backend)" as Guard
+boundary "OrdersController\n(Backend)" as Controller
+control "OrdersService\n(Backend)" as BackendService
+database "PostgreSQL\n(Prisma Transaction)" as DB
+
+User -> Page: Nhập thông tin giao nhận, Voucher, chọn thanh toán, nhấn "Đặt hàng"
+activate Page
+
+Page -> ClientService: create(CreateOrderRequest)
+activate ClientService
+
+ClientService -> Guard: POST /api/orders\nHeaders: Bearer <Token>\nBody: { shippingFee, discount, voucherCode, paymentMethod, shippingAddress }
+activate Guard
+
+Guard -> Guard: Xác minh token đăng nhập
+Guard -> Controller: Chuyển tiếp request (userId)
+deactivate Guard
+activate Controller
+
+Controller -> BackendService: createOrder(userId, CreateOrderDto)
+activate BackendService
+
+BackendService -> DB: Bắt đầu prisma.$transaction()
+activate DB
+
+BackendService -> DB: transaction.cart.findUnique({\n  where: { userId },\n  include: { items: { variant, product } }\n})
+DB --> BackendService: Cart entity
+
+alt Giỏ hàng trống (!cart.items.length)
+    BackendService --> Controller: throw BadRequestException('Giỏ hàng đang trống')
+    Controller --> ClientService: HTTP 400 Bad Request
+    ClientService --> Page: Báo lỗi giỏ hàng trống
+    Page --> User: Hiển thị cảnh báo giỏ hàng trống
+else Giỏ hàng có sản phẩm
+    BackendService -> BackendService: Tính tổng phụ: subtotal = sum(variant.price * quantity)
+
+    opt Có áp dụng Voucher (dto.voucherCode)
+        BackendService -> DB: transaction.voucher.findUnique({ where: { code } })
+        DB --> BackendService: Voucher entity
+        
+        BackendService -> DB: transaction.userVoucher.findUnique({ where: { userId_voucherId } })
+        DB --> BackendService: UserVoucher entity (nếu đã từng dùng)
+
+        alt Voucher không hợp lệ / hết hạn / hết lượt / chưa đạt minOrderValue / đã dùng
+            BackendService --> Controller: throw BadRequestException('Mã giảm giá không hợp lệ...')
+            Controller --> ClientService: HTTP 400 Bad Request
+            ClientService --> Page: Báo lỗi voucher
+            Page --> User: Hiển thị lỗi voucher, yêu cầu chọn lại
+        else Voucher hợp lệ
+            BackendService -> BackendService: Tính toán mức giảm giá: discount (PERCENT / FIXED)\nÁp trần maxDiscount
+            BackendService -> DB: transaction.userVoucher.upsert(usedAt = now)\ntransaction.voucher.update(usedCount: increment 1)
+            DB --> BackendService: Cập nhật lượt dùng voucher thành công
+        end
+    end
+
+    BackendService -> BackendService: Tính tổng thanh toán: total = subtotal + shippingFee - discount
+
+    BackendService -> DB: transaction.order.create({\n  data: { userId, status: PENDING, paymentStatus: PENDING,\n          subtotal, shippingFee, discount, total, shippingAddress,\n          items: create(OrderItems snapshot) }\n})
+    DB --> BackendService: Order đã tạo thành công
+
+    BackendService -> DB: transaction.cartItem.deleteMany({ where: { cartId: cart.id } })
+    DB --> BackendService: Xóa giỏ hàng thành công
+
+    BackendService -> DB: Commit $transaction
+    deactivate DB
+
+    BackendService --> Controller: Trả về Order entity
+    deactivate BackendService
+
+    Controller --> ClientService: HTTP 201 Created\n{ id: order.id, status: 'PENDING' }
+    deactivate Controller
+
+    ClientService --> Page: Tạo đơn hàng thành công
+    deactivate ClientService
+
+    Page --> User: Chuyển hướng sang trang Đặt hàng thành công\nhoặc hướng dẫn chuyển khoản
+end
+deactivate Page
+
+@enduml
+

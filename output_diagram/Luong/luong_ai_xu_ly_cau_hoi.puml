@@ -1,0 +1,70 @@
+@startuml
+' Mục đích: Mô tả luồng xử lý câu hỏi tư vấn AI và cơ chế Fallback đa ý định
+' Nguồn tham chiếu:
+' - Frontend Route Handler: my-web/frontend/src/app/api/chat-ai/route.ts
+' - External Service: OpenAI API (gpt-4o-mini)
+' - Component: my-web/frontend/src/components/features/ai/MiniSocChatbox.tsx
+
+title Sơ đồ Luồng Nghiệp vụ - Xử lý Câu hỏi Trợ lý AI và Fallback Engine (Activity Diagram)
+
+skinparam shadowing false
+skinparam monochrome true
+
+start
+
+:Client gửi HTTP POST /api/chat-ai { message };
+:Trích xuất và làm sạch chuỗi userMessage = message.trim();
+
+if (!message HOẶC typeof message != "string"?) then (Không hợp lệ)
+    :Trả về HTTP 400 { error: "Missing message content" };
+    stop
+else (Hợp lệ)
+endif
+
+:Kiểm tra biến môi trường process.env.OPENAI_API_KEY;
+
+if (Có OPENAI_API_KEY?) then (Có cấu hình)
+    :Xây dựng System Prompt "Trợ lý ảo Mini Sóc tại Sóc Mobile";
+    :Gửi POST https://api.openai.com/v1/chat/completions\n(Model: gpt-4o-mini, Temperature: 0.7);
+    
+    if (OpenAI phản hồi HTTP 200 OK?) then (Thành công)
+        :Trích xuất reply = data.choices[0].message.content;
+        :Trả về HTTP 200 { reply };
+        stop
+    else (Lỗi mạng / Quá tải / Sai Key)
+        :Ghi log cảnh báo lỗi OpenAI;
+        :Tự động chuyển tiếp sang High-Intelligence Fallback Engine;
+    endif
+else (Không có Key - Chế độ Offline)
+    :Kích hoạt High-Intelligence Fallback Reasoning Engine;
+endif
+
+partition "High-Intelligence Fallback Reasoning Engine" {
+    :Chuyển tin nhắn thành chữ thường: msg = userMessage.toLowerCase();
+
+    if (msg chứa 'địa chỉ', 'cửa hàng', 'showroom', 'nguyễn trãi'?) then (Intent 1: Địa chỉ)
+        :Tạo câu trả lời: Showroom 180 Nguyễn Trãi, Thanh Xuân, Hà Nội & Hotline;
+    elseif (msg chứa 'thu cũ', 'đổi mới', 'đặt cọc', 'cọc 5%'?) then (Intent 2: Thu cũ & Đặt cọc)
+        :Tạo câu trả lời: Thu cũ trợ giá 1.000.000đ (mã TROGIA1M) & Đặt cọc 5% giữ hàng;
+    elseif (msg chứa 'game', 'liên quân', 'genshin', 'mượt'?) then (Intent 3: Gaming)
+        :Tạo câu trả lời: Gợi ý iPhone 16 Pro Max, Galaxy S24 Ultra và Xiaomi dòng T;
+    elseif (msg chứa 'chụp ảnh', 'camera', 'quay phim', 'vlog'?) then (Intent 4: Nhiếp ảnh)
+        :Tạo câu trả lời: Gợi ý Camera iPhone màu tự nhiên, Samsung zoom 100x, Xiaomi Leica;
+    elseif (msg chứa 'pin', 'sạc', 'pin trâu'?) then (Intent 5: Pin & Sạc)
+        :Tạo câu trả lời: Thời lượng pin 9-11h onscreen & công nghệ sạc nhanh 67W - 120W;
+    elseif (msg chứa 'trả góp', 'lãi suất', 'cccd'?) then (Intent 6: Trả góp 0%)
+        :Tạo câu trả lời: Hướng dẫn trả góp 0% thẻ tín dụng & trả góp qua CCCD duyệt 15 phút;
+    elseif (msg chứa 'bảo hành', 'đơn hàng', 'imei'?) then (Intent 7: Bảo hành & Tra cứu)
+        :Tạo câu trả lời: Bảo hành Sóc Care 1 đổi 1 và cách tra cứu đơn hàng bằng IMEI;
+    elseif (msg chứa 'khuyến mãi', 'voucher', 'mã giảm'?) then (Intent 8: Khuyến mãi)
+        :Tạo câu trả lời: Danh sách mã TROGIA1M, GIAM50 và quà tặng phụ kiện;
+    else (Ý định khác)
+        :Tạo câu trả lời chào mừng tổng quát và gợi ý các chủ đề Mini Sóc hỗ trợ tốt nhất;
+    endif
+
+    :Trả về HTTP 200 { reply: nội dung fallback };
+    stop
+}
+
+@enduml
+

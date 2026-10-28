@@ -13,6 +13,9 @@ const appConfig = () => ({
         accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
         refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
     },
+    clerk: {
+        secretKey: process.env.CLERK_SECRET_KEY ?? '',
+    },
     redis: {
         host: process.env.REDIS_HOST ?? 'localhost',
         port: parseInt(process.env.REDIS_PORT ?? '6379', 10),

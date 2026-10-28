@@ -17,6 +17,8 @@ const WHITELISTED_DOMAINS = [
   'res.cloudinary.com',
   'picsum.photos',
   'images.unsplash.com',
+  'cdn.tgdd.vn',
+  'cdnv2.tgdd.vn',
 ];
 
 interface SafeImageProps extends Omit<ImageProps, 'onError'> {

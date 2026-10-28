@@ -1,0 +1,70 @@
+@startuml
+' Mục đích: Mô tả luồng mua hàng tổng thể từ xem sản phẩm đến nhận đơn hàng thành công
+' Nguồn tham chiếu:
+' - Frontend: my-web/frontend/src/app/shop/page.tsx, my-web/frontend/src/app/cart/page.tsx, my-web/frontend/src/app/checkout/page.tsx
+' - Backend Modules: Products, Cart, Orders
+' - Database: my-web/backend/prisma/schema.prisma (Product, Cart, Order)
+
+title Sơ đồ Luồng Nghiệp vụ - Quá trình Mua hàng Trực tuyến (Activity Diagram)
+
+skinparam shadowing false
+skinparam monochrome true
+
+start
+
+:Khách hàng truy cập Trang Cửa hàng (/shop);
+:Tìm kiếm hoặc Lọc sản phẩm theo Thương hiệu / Tầm giá / Danh mục;
+:Chọn sản phẩm cụ thể để xem chi tiết;
+:Xem thông số kỹ thuật, chọn Màu sắc và Dung lượng bộ nhớ;
+
+if (Sản phẩm còn hàng trong kho?) then (Có)
+    :Nhấn "Thêm vào giỏ hàng";
+else (Hết hàng)
+    :Hiển thị trạng thái "Hết hàng";
+    stop
+endif
+
+:Truy cập Trang Giỏ hàng (/cart);
+:Kiểm tra lại số lượng hoặc chỉnh sửa danh sách món hàng;
+
+if (Khách hàng đã đăng nhập tài khoản?) then (Chưa)
+    :Chuyển hướng đến màn hình Đăng nhập / Đăng ký;
+    :Thực hiện xác thực danh tính (Clerk SSO hoặc Local JWT);
+    :Đồng bộ giỏ hàng lên hệ thống máy chủ;
+else (Đã đăng nhập)
+endif
+
+:Chuyển sang Trang Thanh toán (/checkout);
+:Nhập địa chỉ nhận hàng hoặc chọn Nhận tại Showroom;
+
+if (Khách hàng có Mã giảm giá (Voucher)?) then (Có)
+    :Nhập mã Voucher và bấm "Áp dụng";
+    if (Voucher còn hiệu lực và đạt giá trị tối thiểu?) then (Hợp lệ)
+        :Hệ thống trừ tiền chiết khấu vào tổng đơn;
+    else (Không hợp lệ)
+        :Báo lỗi mã voucher, giữ nguyên giá gốc;
+    endif
+else (Không)
+endif
+
+:Chọn phương thức thanh toán (COD hoặc Chuyển khoản ngân hàng);
+:Nhấn nút "Xác nhận đặt hàng";
+
+if (Tạo đơn hàng trong Database Transaction thành công?) then (Thành công)
+    :Hệ thống tự động dọn sạch các món trong giỏ hàng;
+    :Ghi nhận đơn hàng trạng thái PENDING;
+    if (Phương thức thanh toán là Chuyển khoản?) then (Đúng)
+        :Hiển thị thông tin STK ngân hàng và mã thanh toán QR;
+    else (COD / Nhận tại shop)
+        :Hiển thị thông báo đặt hàng thành công;
+    endif
+    :Gửi thông báo xác nhận tới tài khoản khách hàng;
+    stop
+else (Thất bại)
+    :Thông báo lỗi xử lý giao dịch;
+    :Giữ nguyên giỏ hàng để khách thử lại;
+    stop
+endif
+
+@enduml
+

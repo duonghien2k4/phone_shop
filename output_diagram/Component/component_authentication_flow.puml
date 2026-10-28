@@ -1,0 +1,79 @@
+@startuml
+title Luồng Xác thực và Phân quyền (Authentication và RBAC)
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 180
+
+actor "Người dùng" as U
+participant "Frontend\n(api-client)" as FE
+participant "Clerk Cloud" as CC
+participant "AuthController" as AC
+participant "ClerkAuthGuard\n(Xác thực)" as AG
+participant "RolesGuard\n(Phân quyền)" as RG
+participant "Controller\n(API)" as API
+database "PostgreSQL\n(bảng users)" as DB
+
+== Phần 1: Đăng nhập để lấy token ==
+alt Đăng nhập Clerk SSO (Google, GitHub)
+    U -> CC : 1. Đăng nhập qua Clerk
+    CC --> FE : Clerk Session Token
+    note right of FE : Đăng ký clerkTokenGetter()
+else Đăng nhập Email / Password
+    U -> AC : 1. POST /api/auth/login
+    AC -> DB : Tìm user, so khớp bcrypt
+    DB --> AC : Thông tin user
+    AC --> FE : accessToken (15 phút)
+    AC --> FE : refreshToken qua HTTP-Only Cookie (7 ngày)
+end
+
+== Phần 2: Gọi API được bảo vệ ==
+note over FE
+  Ưu tiên Clerk Token,
+  nếu không có thì dùng Local JWT
+end note
+FE -> AG : 2. Request kèm Authorization: Bearer token
+
+group Bước 1: Xác thực danh tính
+    alt Tầng 1: Local JWT hợp lệ
+        AG -> AG : jwt.verify với JWT_SECRET, lấy userId
+    else Tầng 2: Local thất bại, thử Clerk
+        AG -> CC : verifyToken với CLERK_SECRET_KEY
+        CC --> AG : Lấy email / clerkId
+    else Cả hai đều thất bại
+        AG -[#red]-> FE : 401 Unauthorized
+    end
+end
+
+group Bước 2: Kiểm tra tài khoản
+    AG -> DB : Truy vấn user.status
+    DB --> AG : Trạng thái tài khoản
+    alt Tài khoản bị khóa (BANNED)
+        AG -[#red]-> FE : Từ chối truy cập
+    else Hợp lệ
+        note over AG : Gán request.user gồm sub, email, role
+    end
+end
+
+group Bước 3: Phân quyền RBAC
+    AG -> RG : 3. Chuyển request đã xác thực
+    note over RG
+      Reflector đọc metadata @Roles
+      So sánh với role của request.user
+      (ADMIN, STAFF, CUSTOMER)
+    end note
+    alt Khớp quyền, hoặc endpoint không yêu cầu role
+        RG -> API : 4. Cho đi tiếp
+        API --> FE : 200 / 201 dữ liệu
+    else Không đủ quyền
+        RG -[#red]-> FE : 403 Forbidden
+    end
+end
+
+note over FE, API
+  Public Endpoints (GET /products, GET /partners...)
+  không đi qua Guard, gọi thẳng vào Controller
+end note
+
+@enduml
