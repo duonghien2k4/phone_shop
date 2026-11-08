@@ -30,6 +30,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatVND } from '@/utils/format';
 import { productService, ProductReview } from '@/services/product.service';
 import type { MockProduct, ProductVariant } from '@/types/product';
+import {
+  areSameProductVariants,
+  getProductVariantKey,
+  getProductVariantLabel,
+} from '@/utils/product-variant';
 
 interface ProductDetailContentProps {
   product: MockProduct;
@@ -56,6 +61,12 @@ const POLL_INTERVAL_MS = 10_000;
 export default function ProductDetailContent({ product, allProducts }: ProductDetailContentProps) {
   const router = useRouter();
   const { addToCart } = useCart();
+  const galleryImages = Array.from(
+    new Set([product.image, ...(product.images ?? [])].filter(Boolean)),
+  );
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(
+    galleryImages[0] ?? product.image,
+  );
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
     product.variants[0] ?? { storage: 'Mặc định', price: product.price },
   );
@@ -68,28 +79,54 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [reviewTotal, setReviewTotal] = useState(0);
   const [avgRating, setAvgRating] = useState(0);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewsError, setReviewsError] = useState(false);
 
   const oldPrice = selectedVariant.oldPrice ?? Math.round(selectedVariant.price * 1.08);
   const discount = Math.max(0, Math.round(((oldPrice - selectedVariant.price) / oldPrice) * 100));
 
+  const isOutOfStock =
+    (selectedVariant?.stock !== undefined && selectedVariant.stock <= 0) ||
+    selectedVariant?.inventory?.status === 'OUT_OF_STOCK';
+
   const addProductToCart = () => {
-    const variantIndex = product.variants.findIndex((variant) => variant.storage === selectedVariant.storage);
-      addToCart({
-        variantId: selectedVariant.id ?? (product.id * 10 + Math.max(variantIndex, 0)),
-        productId: product.id,
-        productName: product.name,
-        color: selectedVariant.color || 'Mặc định',
-        storage: selectedVariant.storage,
-        imageUrl: selectedVariant.imageUrl || product.image,
-        price: selectedVariant.price,
-        quantity,
-      });
+    if (isOutOfStock) return;
+    const variantIndex = product.variants.findIndex((variant) =>
+      areSameProductVariants(variant, selectedVariant),
+    );
+    const targetVariantId = selectedVariant.id ?? (product.id * 10 + Math.max(variantIndex, 0));
+    addToCart({
+      variantId: targetVariantId,
+      productId: product.id,
+      productName: product.name,
+      color: selectedVariant.color || 'Mặc định',
+      storage: selectedVariant.storage,
+      imageUrl: selectedVariant.imageUrl || product.image,
+      price: selectedVariant.price,
+      quantity,
+      stock: selectedVariant.stock,
+    });
   };
 
   const handleBuyNow = () => {
-    addProductToCart();
-    router.push('/checkout');
+    if (isOutOfStock) return;
+    const variantIndex = product.variants.findIndex((variant) =>
+      areSameProductVariants(variant, selectedVariant),
+    );
+    const targetVariantId = selectedVariant.id ?? (product.id * 10 + Math.max(variantIndex, 0));
+    addToCart({
+      variantId: targetVariantId,
+      productId: product.id,
+      productName: product.name,
+      color: selectedVariant.color || 'Mặc định',
+      storage: selectedVariant.storage,
+      imageUrl: selectedVariant.imageUrl || product.image,
+      price: selectedVariant.price,
+      quantity,
+      stock: selectedVariant.stock,
+    });
+    router.push(`/checkout?items=${targetVariantId}`);
   };
 
   const fetchReviews = useCallback(async () => {
@@ -98,14 +135,17 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
       setReviews(res.reviews);
       setReviewTotal(res.total);
       setAvgRating(res.avgRating);
+      setReviewsLoaded(true);
+      setReviewsError(false);
     } catch {
-      // ignore fetch errors silently
+      setReviewsError(true);
+    } finally {
+      setReviewsLoaded(true);
     }
   }, [product.slug]);
 
   // Initial load
   useEffect(() => {
-    setReviewsLoading(true);
     void fetchReviews().finally(() => setReviewsLoading(false));
   }, [fetchReviews]);
 
@@ -129,31 +169,58 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
               {product.fastDelivery && <Badge className="product-fast-badge px-1! py-0.5! text-white!"><Zap size={12} fill="currentColor" /> Giao nhanh 2H</Badge>}
             </div>
             <div className="product-gallery-image">
-              <SafeImage src={product.image} alt={product.name} fill style={{ objectFit: 'contain', padding: '28px' }} />
+              <SafeImage src={selectedGalleryImage} alt={product.name} fill style={{ objectFit: 'contain', padding: '28px' }} />
             </div>
-            <div className="product-gallery-thumbs"><button type="button" className="active"><SafeImage src={product.image} alt="" fill style={{ objectFit: 'contain', padding: '4px' }} /></button></div>
+            {galleryImages.length > 1 && (
+              <div className="product-gallery-thumbs">
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    className={selectedGalleryImage === image ? 'active' : ''}
+                    aria-label={`Xem ảnh ${index + 1} của ${product.name}`}
+                    onClick={() => setSelectedGalleryImage(image)}
+                  >
+                    <SafeImage src={image} alt="" fill style={{ objectFit: 'contain', padding: '4px' }} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="product-buy-panel">
             <div className="product-brand-label">{product.brand} chính hãng</div>
             <h1>{product.name}</h1>
             <div className="product-rating-row">
-              <span className="product-stars"><Star size={15} fill="currentColor" /> {avgRating > 0 ? avgRating.toFixed(1) : product.rating.toFixed(1)}</span>
-              <span>{reviewTotal > 0 ? reviewTotal : product.reviewCount} đánh giá</span><span>Đã bán {product.soldCount}</span>
+              <span className="product-stars"><Star size={15} fill="currentColor" /> {reviewsError ? '—' : avgRating.toFixed(1)}</span>
+              <span>{reviewsError ? 'Không tải được đánh giá' : `${reviewTotal} đánh giá`}</span><span>Đã bán {product.soldCount}</span>
             </div>
-            <div className="product-price-block">
+            <div className="product-price-block flex items-center gap-2 flex-wrap">
               <strong>{formatVND(selectedVariant.price)}</strong>
               <del>{formatVND(oldPrice)}</del>
               {discount > 0 && <Badge className='px-1! py-0.5! text-white' variant="destructive">-{discount}%</Badge>}
+              {isOutOfStock ? (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold border border-red-200">
+                  Tạm hết hàng
+                </span>
+              ) : selectedVariant.stock !== undefined && selectedVariant.stock <= 5 ? (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium border border-amber-200">
+                  Chỉ còn {selectedVariant.stock} máy
+                </span>
+              ) : (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium border border-emerald-200">
+                  Còn hàng
+                </span>
+              )}
             </div>
             <div className="product-promotion"><GiftIcon /> <span>{product.promotionText}</span></div>
 
             <div className="product-option-section">
-              <h3>Dung lượng <span>{selectedVariant.storage}</span></h3>
+              <h3>Dung lượng <span>{getProductVariantLabel(selectedVariant)}</span></h3>
               <div className="product-variant-list">
                 {product.variants.map((variant, idx) => (
-                  <Button className="px-4! py-2!" key={variant.id || `${variant.storage}-${idx}`} type="button" variant={selectedVariant.storage === variant.storage ? 'default' : 'outline'} onClick={() => setSelectedVariant(variant)}>
-                    {variant.storage}<small>{formatVND(variant.price)}</small>
+                  <Button className="px-4! py-2!" key={getProductVariantKey(variant, idx)} type="button" variant={areSameProductVariants(selectedVariant, variant) ? 'default' : 'outline'} onClick={() => setSelectedVariant(variant)}>
+                    {getProductVariantLabel(variant)}<small>{formatVND(variant.price)}</small>
                   </Button>
                 ))}
               </div>
@@ -161,12 +228,45 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
 
             <div className="product-quantity-row">
               <span>Số lượng</span>
-              <div><Button variant="outline" size="icon-sm" onClick={() => setQuantity((value) => Math.max(1, value - 1))}><Minus size={14} /></Button><strong>{quantity}</strong><Button variant="outline" size="icon-sm" onClick={() => setQuantity((value) => value + 1)}><Plus size={14} /></Button></div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={isOutOfStock || quantity <= 1}
+                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                >
+                  <Minus size={14} />
+                </Button>
+                <strong>{isOutOfStock ? 0 : quantity}</strong>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={isOutOfStock || (selectedVariant.stock !== undefined && quantity >= selectedVariant.stock)}
+                  onClick={() => setQuantity((value) => (selectedVariant.stock ? Math.min(selectedVariant.stock, value + 1) : value + 1))}
+                >
+                  <Plus size={14} />
+                </Button>
+              </div>
             </div>
 
             <div className="product-cta-row">
-              <Button size="lg" className="product-cart-button" onClick={addProductToCart}><ShoppingCart size={19} /> Thêm vào giỏ</Button>
-              <Button size="lg" variant="outline" className="product-buy-button" onClick={handleBuyNow}>Mua ngay</Button>
+              <Button
+                size="lg"
+                disabled={isOutOfStock}
+                className={`product-cart-button ${isOutOfStock ? 'opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''}`}
+                onClick={addProductToCart}
+              >
+                <ShoppingCart size={19} /> {isOutOfStock ? 'Tạm hết hàng' : 'Thêm vào giỏ'}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={isOutOfStock}
+                className={`product-buy-button ${isOutOfStock ? 'opacity-50 cursor-not-allowed text-slate-400 border-slate-300' : ''}`}
+                onClick={handleBuyNow}
+              >
+                {isOutOfStock ? 'Tạm hết hàng' : 'Mua ngay'}
+              </Button>
               <Button variant="outline" size="icon-lg" aria-label="Yêu thích" onClick={() => setLiked((value) => !value)}><Heart size={20} fill={liked ? 'currentColor' : 'none'} /></Button>
             </div>
 
@@ -180,12 +280,12 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
         </section>
 
         <nav className="product-detail-tabs" aria-label="Nội dung sản phẩm">
-          {tabs.map(([id, label]) => <button key={id} type="button" className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setActiveTab(id); }}>{label}{id === 'reviews' && <span>{reviewTotal > 0 ? reviewTotal : product.reviewCount}</span>}</button>)}
+          {tabs.map(([id, label]) => <button key={id} type="button" className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setActiveTab(id); }}>{label}{id === 'reviews' && <span>{reviewsError ? '—' : !reviewsLoaded ? '…' : reviewTotal}</span>}</button>)}
         </nav>
 
         <section className="product-detail-lower">
           <article className="product-editorial-card">
-            {activeTab === 'highlights' && <Highlights product={product} />}
+            {activeTab === 'highlights' && <Highlights product={product} avgRating={avgRating} reviewTotal={reviewTotal} />}
             {activeTab === 'specs' && <Specs product={product} />}
             {activeTab === 'reviews' && (
               <Reviews
@@ -194,6 +294,7 @@ export default function ProductDetailContent({ product, allProducts }: ProductDe
                 total={reviewTotal}
                 avgRating={avgRating}
                 loading={reviewsLoading}
+                error={reviewsError}
                 onReviewSubmitted={fetchReviews}
               />
             )}
@@ -221,8 +322,8 @@ function TrustItem({ icon: Icon, title, description }: { icon: typeof BadgeCheck
   return <div><Icon size={20} /><span><strong>{title}</strong><small>{description}</small></span></div>;
 }
 
-function Highlights({ product }: { product: MockProduct }) {
-  return <div className="product-content-stack"><h2>Đánh giá chi tiết {product.name}</h2><p>{product.description} Với thiết kế hiện đại, hiệu năng ổn định và hệ sinh thái chính hãng, đây là lựa chọn phù hợp cho nhu cầu sử dụng dài lâu.</p><div className="product-highlight-box"><div><BadgeCheck size={18} /><h3>Thiết kế và trải nghiệm được tối ưu</h3><p>Sản phẩm được kiểm tra kỹ trước khi giao, đóng gói an toàn và hỗ trợ chuyển dữ liệu tại cửa hàng.</p></div><div className="product-highlight-stat"><strong>{product.rating.toFixed(1)}/5</strong><span>Đánh giá người dùng</span></div></div></div>;
+function Highlights({ product, avgRating, reviewTotal }: { product: MockProduct; avgRating: number; reviewTotal: number }) {
+  return <div className="product-content-stack"><h2>Đánh giá chi tiết {product.name}</h2><p>{product.description} Với thiết kế hiện đại, hiệu năng ổn định và hệ sinh thái chính hãng, đây là lựa chọn phù hợp cho nhu cầu sử dụng dài lâu.</p><div className="product-highlight-box"><div><BadgeCheck size={18} /><h3>Thiết kế và trải nghiệm được tối ưu</h3><p>Sản phẩm được kiểm tra kỹ trước khi giao, đóng gói an toàn và hỗ trợ chuyển dữ liệu tại cửa hàng.</p></div><div className="product-highlight-stat"><strong>{avgRating.toFixed(1)}/5</strong><span>{reviewTotal} đánh giá khách hàng</span></div></div></div>;
 }
 
 function Specs({ product }: { product: MockProduct }) {
@@ -272,10 +373,11 @@ interface ReviewsProps {
   total: number;
   avgRating: number;
   loading: boolean;
+  error: boolean;
   onReviewSubmitted: () => Promise<void>;
 }
 
-function Reviews({ product, reviews, total, avgRating, loading, onReviewSubmitted }: ReviewsProps) {
+function Reviews({ product, reviews, total, avgRating, loading, error, onReviewSubmitted }: ReviewsProps) {
   const { user, isAuthenticated } = useAuth();
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -283,10 +385,42 @@ function Reviews({ product, reviews, total, avgRating, loading, onReviewSubmitte
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [canReviewLoaded, setCanReviewLoaded] = useState(false);
+  const [canReviewReason, setCanReviewReason] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const displayAvg = avgRating > 0 ? avgRating : product.rating;
-  const displayTotal = total > 0 ? total : product.reviewCount;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCanReview(false);
+      setCanReviewLoaded(true);
+      return;
+    }
+    let isMounted = true;
+    productService
+      .canReview(product.slug)
+      .then((res) => {
+        if (isMounted) {
+          setCanReview(res.canReview);
+          setCanReviewReason(res.reason || null);
+          setCanReviewLoaded(true);
+        }
+      })
+      .catch((error: unknown) => {
+        if (isMounted) {
+          setCanReview(false);
+          setCanReviewReason(
+            error instanceof Error
+              ? error.message
+              : 'Không thể xác thực quyền đánh giá. Vui lòng thử lại.',
+          );
+          setCanReviewLoaded(true);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, product.slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,18 +465,20 @@ function Reviews({ product, reviews, total, avgRating, loading, onReviewSubmitte
           <h2>Đánh giá khách hàng thực tế</h2>
           <p>Những chia sẻ đã được tổng hợp từ khách hàng đã mua sản phẩm.</p>
         </div>
-        <Badge variant="outline">{displayTotal} đánh giá</Badge>
+        <Badge variant="outline">{error ? 'Không tải được' : `${total} đánh giá`}</Badge>
       </div>
 
       <div className="product-review-summary">
-        <strong>{displayAvg.toFixed(1)}</strong>
-        <span className="product-stars"><Star size={17} fill="currentColor" /> Xuất sắc</span>
-        <small>{displayTotal} đánh giá đã xác thực</small>
+        <strong>{error ? '—' : avgRating.toFixed(1)}</strong>
+        <span className="product-stars"><Star size={17} fill="currentColor" /> {error ? 'Chưa có dữ liệu' : avgRating >= 4.5 ? 'Xuất sắc' : avgRating >= 3.5 ? 'Hài lòng' : avgRating > 0 ? 'Cần cải thiện' : 'Chưa có đánh giá'}</span>
+        <small>{error ? 'Không thể tải dữ liệu đánh giá' : `${total} đánh giá đã xác thực`}</small>
       </div>
 
       {/* Review list */}
       <div className="product-review-list">
-        {loading ? (
+        {error ? (
+          <p className="text-slate-400 text-sm py-4">Không tải được đánh giá. Vui lòng tải lại trang để thử lại.</p>
+        ) : loading ? (
           <div className="flex items-center justify-center py-8 text-slate-400">
             <Loader2 size={20} className="animate-spin mr-2" />
             <span>Đang tải đánh giá...</span>
@@ -386,6 +522,18 @@ function Reviews({ product, reviews, total, avgRating, loading, onReviewSubmitte
           <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <MessageCircleQuestion size={20} className="text-slate-400 shrink-0" />
             <p className="text-sm text-slate-500 flex-1">Bạn cần <Link href="/login" className="text-blue-600 hover:underline font-semibold">đăng nhập</Link> để gửi đánh giá sản phẩm.</p>
+          </div>
+        ) : !canReviewLoaded ? (
+          <div className="flex items-center gap-2 py-3 text-slate-400 text-sm">
+            <Loader2 size={16} className="animate-spin" />
+            <span>Đang kiểm tra điều kiện đánh giá...</span>
+          </div>
+        ) : !canReview ? (
+          <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <ShieldCheck size={20} className="text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-800 flex-1">
+              {canReviewReason || 'Chỉ những khách hàng đã từng mua sản phẩm này tại Sóc Mobile mới có thể viết đánh giá.'}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

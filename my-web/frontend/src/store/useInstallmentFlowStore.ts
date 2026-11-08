@@ -25,7 +25,6 @@ export interface InstallmentFlowState {
   includeWarranty: boolean;
   includeLoanInsurance: boolean;
   kycInfo: CustomerKycInfo;
-  otp: string[];
   isSigned: boolean;
   contractCode: string;
   orderCode: string;
@@ -48,8 +47,6 @@ export interface InstallmentFlowState {
   setIncludeWarranty: (val: boolean) => void;
   setIncludeLoanInsurance: (val: boolean) => void;
   updateKycInfo: (partial: Partial<CustomerKycInfo>) => void;
-  setOtp: (otp: string[]) => void;
-  setOtpDigit: (index: number, digit: string) => void;
   setIsSigned: (isSigned: boolean) => void;
   setCreatedApplication: (app: any) => void;
   initFromQuery: (params: {
@@ -73,7 +70,6 @@ export const useInstallmentFlowStore = create<InstallmentFlowState>((set, get) =
   includeWarranty: false,
   includeLoanInsurance: true,
   kycInfo: { ...MOCK_INITIAL_KYC },
-  otp: ['8', '2', '4', '6', '', ''],
   isSigned: false,
   contractCode: '#HDTG-2025-88912',
   orderCode: '#PZ-88912',
@@ -134,13 +130,6 @@ export const useInstallmentFlowStore = create<InstallmentFlowState>((set, get) =
   setIncludeLoanInsurance: (val) => set({ includeLoanInsurance: val }),
   updateKycInfo: (partial) =>
     set((state) => ({ kycInfo: { ...state.kycInfo, ...partial } })),
-  setOtp: (otp) => set({ otp }),
-  setOtpDigit: (index, digit) =>
-    set((state) => {
-      const newOtp = [...state.otp];
-      newOtp[index] = digit;
-      return { otp: newOtp };
-    }),
   setIsSigned: (isSigned) => set({ isSigned }),
   setCreatedApplication: (app) =>
     set({
@@ -187,7 +176,6 @@ export const useInstallmentFlowStore = create<InstallmentFlowState>((set, get) =
       includeWarranty: false,
       includeLoanInsurance: true,
       kycInfo: { ...MOCK_INITIAL_KYC },
-      otp: ['8', '2', '4', '6', '', ''],
       isSigned: false,
     }),
 }));

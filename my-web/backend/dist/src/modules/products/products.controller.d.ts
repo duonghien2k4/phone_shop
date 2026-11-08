@@ -188,6 +188,12 @@ export declare class ProductsController {
         total: number;
         avgRating: number;
     }>;
+    canReview(slug: string, user: {
+        sub: number;
+    }): Promise<{
+        canReview: boolean;
+        reason: string | null;
+    }>;
     submitReview(slug: string, user: {
         sub: number;
     }, body: {

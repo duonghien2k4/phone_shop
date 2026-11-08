@@ -35,6 +35,9 @@ let ProductsController = class ProductsController {
     getProductReviews(slug) {
         return this.productsService.getProductReviews(slug);
     }
+    canReview(slug, user) {
+        return this.productsService.canUserReview(slug, user.sub);
+    }
     submitReview(slug, user, body) {
         return this.productsService.createOrUpdateReview(slug, user.sub, body);
     }
@@ -67,6 +70,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "getProductReviews", null);
+__decorate([
+    (0, common_1.Get)(':slug/can-review'),
+    (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard),
+    __param(0, (0, common_1.Param)('slug')),
+    __param(1, (0, get_user_decorator_1.GetUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "canReview", null);
 __decorate([
     (0, common_1.Post)(':slug/reviews'),
     (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard),

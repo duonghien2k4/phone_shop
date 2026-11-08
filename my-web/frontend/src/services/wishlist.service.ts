@@ -1,16 +1,17 @@
 import { api } from '@/lib/api-client';
+import type { ProductApiItem } from '@/services/product.service';
 
 export interface WishlistItemResponse {
   id: number;
   userId: number;
   productId: number;
   createdAt: string;
-  product: any;
+  product: ProductApiItem;
 }
 
 export interface WishlistData {
   items: WishlistItemResponse[];
-  products: any[];
+  products: ProductApiItem[];
   productIds: number[];
   total: number;
 }
@@ -38,4 +39,3 @@ export const wishlistService = {
     return api.delete<ToggleWishlistResponse>(`/wishlist/${productId}`);
   },
 };
-

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
@@ -25,6 +25,13 @@ const reviewInclude = {
     },
   },
 };
+
+const REVIEWABLE_ORDER_STATUSES: OrderStatus[] = [
+  OrderStatus.PENDING,
+  OrderStatus.CONFIRMED,
+  OrderStatus.SHIPPING,
+  OrderStatus.DELIVERED,
+];
 
 @Injectable()
 export class ProductsService {
@@ -158,6 +165,35 @@ export class ProductsService {
     return { reviews, total, avgRating: Math.round(avgRating * 10) / 10 };
   }
 
+  async canUserReview(slug: string, userId: number) {
+    const product = await this.prisma.product.findFirst({
+      where: { slug, isActive: true },
+      select: { id: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Không tìm thấy sản phẩm');
+    }
+
+    const hasPurchased = await this.prisma.order.findFirst({
+      where: {
+        userId,
+        status: { in: REVIEWABLE_ORDER_STATUSES },
+        items: {
+          some: { productId: product.id },
+        },
+      },
+      select: { id: true },
+    });
+
+    return {
+      canReview: Boolean(hasPurchased),
+      reason: hasPurchased
+        ? null
+        : 'Bạn chỉ có thể đánh giá sau khi đã mua sản phẩm này tại Sóc Mobile.',
+    };
+  }
+
   async createOrUpdateReview(
     slug: string,
     userId: number,
@@ -177,6 +213,23 @@ export class ProductsService {
 
     if (!product) {
       throw new NotFoundException('Không tìm thấy sản phẩm');
+    }
+
+    const hasPurchased = await this.prisma.order.findFirst({
+      where: {
+        userId,
+        status: { in: REVIEWABLE_ORDER_STATUSES },
+        items: {
+          some: { productId: product.id },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!hasPurchased) {
+      throw new BadRequestException(
+        'Bạn chỉ có thể gửi đánh giá sau khi đã mua sản phẩm này tại Sóc Mobile.',
+      );
     }
 
     const review = await this.prisma.review.upsert({

@@ -20,6 +20,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { InstallmentModule } from './modules/installment/installment.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { VouchersModule } from './modules/vouchers/vouchers.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { AdminModule } from './modules/admin/admin.module';
     WishlistModule,
     InstallmentModule,
     AdminModule,
+    VouchersModule,
 
     // Feature modules will be added here as they are scaffolded:
     // UserModule, ProductModule, CategoryModule,

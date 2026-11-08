@@ -236,7 +236,7 @@ export default function GioiThieuPage() {
                     className="h-12 rounded-full bg-[#143de7] px-7! my-10 font-bold text-white shadow-md hover:bg-[#0f2fc0] transition-all"
                   >
                     <Link href="#timeline-section" className="inline-flex items-center gap-2">
-                      <span>Khám phá sản phẩm hot</span>
+                      <span className="text-white">Khám phá sản phẩm hot</span>
                       <ChevronRight className="size-4" aria-hidden />
                     </Link>
                   </Button>

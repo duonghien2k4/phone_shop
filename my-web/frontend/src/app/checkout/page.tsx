@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, QrCode, Banknote, Loader2, Store, Truck } from 'lucide-react';
@@ -37,12 +37,34 @@ const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'H�
 function CheckoutForm() {
   const canRender = useRequireClerkAuth();
   const searchParams = useSearchParams();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, removeFromCart, clearCart } = useCart();
   const { user } = useAuth();
 
   const fulfillmentFromUrl = searchParams.get('fulfillment') === 'STORE_PICKUP' ? 'STORE_PICKUP' : 'HOME_DELIVERY';
   const voucherCode = searchParams.get('voucher') || '';
   const discount = Number(searchParams.get('discount')) || 0;
+
+  // Selected items filtering from query parameters
+  const itemsParam = searchParams.get('items');
+  const selectedVariantIds = useMemo(() => {
+    if (!itemsParam) return null;
+    return itemsParam
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => Number.isFinite(id) && id > 0);
+  }, [itemsParam]);
+
+  const checkoutItems = useMemo(() => {
+    if (!selectedVariantIds || selectedVariantIds.length === 0) {
+      return items;
+    }
+    return items.filter((item) => selectedVariantIds.includes(item.variantId));
+  }, [items, selectedVariantIds]);
+
+  const itemsSubtotal = useMemo(
+    () => checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [checkoutItems],
+  );
 
   // Fulfillment & Pickup states
   const [fulfillmentMode, setFulfillmentMode] = useState<FulfillmentMode>(fulfillmentFromUrl);
@@ -61,12 +83,12 @@ function CheckoutForm() {
   // Workflow states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [qrCountdown, setQrCountdown] = useState(5);
   const [isSuccess, setIsSuccess] = useState(false);
   const [generatedOrderCode] = useState(() => Math.floor(10000 + Math.random() * 90000).toString());
 
-  const shippingFee = fulfillmentMode === 'STORE_PICKUP' || totalPrice > 15000000 || totalPrice === 0 ? 0 : 30000;
-  const finalTotal = Math.max(0, totalPrice + shippingFee - discount);
+  const shippingFee =
+    fulfillmentMode === 'STORE_PICKUP' || itemsSubtotal >= 15000000 || itemsSubtotal === 0 ? 0 : 30000;
+  const finalTotal = Math.max(0, itemsSubtotal + shippingFee - discount);
   
   // Deposit = exactly 5% of final order total
   const depositAmount = Math.round(finalTotal * 0.05);
@@ -104,7 +126,7 @@ function CheckoutForm() {
       discount: discount,
       voucherCode: voucherCode || null,
       note: fulfillmentMode === 'STORE_PICKUP' ? `Hẹn đến Showroom: ${appointmentTime}` : 'Đơn hàng mới từ website',
-      items: items.map(item => ({
+      items: checkoutItems.map(item => ({
         id: item.productId || item.variantId,
         name: item.productName,
         image: item.imageUrl || APP_CONFIG.DEFAULT_PRODUCT_IMAGE,
@@ -140,6 +162,7 @@ function CheckoutForm() {
     try {
       if (user) {
         await ordersService.create({
+          variantIds: checkoutItems.map((item) => item.variantId),
           shippingFee,
           discount,
           voucherCode: voucherCode || null,
@@ -160,7 +183,6 @@ function CheckoutForm() {
           },
         });
       }
-
     } catch (e) {
       console.error('Failed to create order:', e);
       const message = e instanceof Error ? e.message : 'Không thể tạo đơn hàng';
@@ -182,24 +204,13 @@ function CheckoutForm() {
     setIsSubmitting(false);
     setShowQrModal(false);
     setIsSuccess(true);
-    clearCart();
-    toast.success(isDeposit ? 'Đã ghi nhận đơn hàng, đang chờ xác nhận thanh toán.' : 'Đơn hàng đã được đặt thành công!');
-  }, [clearCart, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, items, user]);
-
-  // Timer for automatic QR confirmation
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (showQrModal && qrCountdown > 0) {
-      timer = setTimeout(() => {
-        setQrCountdown((prev) => prev - 1);
-      }, 1000);
-    } else if (showQrModal && qrCountdown === 0) {
-      timer = setTimeout(() => {
-        handleCompleteOrder();
-      }, 0);
+    if (selectedVariantIds && selectedVariantIds.length > 0) {
+      selectedVariantIds.forEach((id) => void removeFromCart(id));
+    } else {
+      clearCart();
     }
-    return () => clearTimeout(timer);
-  }, [showQrModal, qrCountdown, handleCompleteOrder]);
+    toast.success(isDeposit ? 'Đã ghi nhận đơn hàng, đang chờ xác nhận thanh toán.' : 'Đơn hàng đã được đặt thành công!');
+  }, [clearCart, removeFromCart, selectedVariantIds, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, checkoutItems, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,19 +226,18 @@ function CheckoutForm() {
 
     if (paymentMethod === 'VIETQR' || paymentMethod === 'DEPOSIT_5') {
       setShowQrModal(true);
-      setQrCountdown(5);
     } else {
       setIsSubmitting(true);
       setTimeout(() => {
         handleCompleteOrder();
-      }, 1200);
+      }, 800);
     }
   };
 
   // Construct VietQR URL using APP_CONFIG.BANK
   const vietQrUrl = `https://img.vietqr.io/image/${APP_CONFIG.BANK.BANK_ID}-${APP_CONFIG.BANK.ACCOUNT_NO}-compact2.png?amount=${qrTransferAmount}&addInfo=${isDepositMode ? 'COC5' : 'SOC'}${generatedOrderCode}&accountName=${encodeURIComponent(APP_CONFIG.BANK.ACCOUNT_NAME)}`;
 
-  if (items.length === 0 && !isSuccess) {
+  if (checkoutItems.length === 0 && !isSuccess) {
     if (!canRender) return null;
 
     return (
@@ -587,7 +597,7 @@ function CheckoutForm() {
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
-          {items.map((item) => (
+          {checkoutItems.map((item) => (
             <div key={item.variantId} className="checkout-summary-item">
               <div className="checkout-summary-img-wrapper">
                 <SafeImage
@@ -609,7 +619,7 @@ function CheckoutForm() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
           <div className="summary-row">
             <span>{LABELS.CART.TEMP_PRICE}</span>
-            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatVND(totalPrice)}</span>
+            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatVND(itemsSubtotal)}</span>
           </div>
 
           <div className="summary-row">
@@ -656,7 +666,6 @@ function CheckoutForm() {
           qrTransferAmount={qrTransferAmount}
           generatedOrderCode={generatedOrderCode}
           vietQrUrl={vietQrUrl}
-          qrCountdown={qrCountdown}
           onConfirm={handleCompleteOrder}
           onClose={() => setShowQrModal(false)}
         />

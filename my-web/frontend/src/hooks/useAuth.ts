@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useAuthStore } from '@/store/useAuthStore';
+import { type AuthUser, useAuthStore } from '@/store/useAuthStore';
 import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { authService, LoginDto, RegisterDto } from '@/services/auth.service';
 import { setLocalTokenGetter } from '@/lib/api-client';
@@ -19,7 +19,7 @@ import { useCartStore } from '@/store/useCartStore';
 
 export function useAuth() {
   const router = useRouter();
-  const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useClerkAuth();
   const { user, accessToken, isInitialized, setUser, setAccessToken, setInitialized, logout: clearStore } = useAuthStore();
   const clearCart = useCartStore((state) => state.clearCart);
 
@@ -34,7 +34,17 @@ export function useAuth() {
 
   // Initialize and check current session
   const initializeAuth = useCallback(async () => {
-    if (isInitialized) return;
+    if (isInitialized || !isClerkLoaded) return;
+
+    const localToken =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem('phoneshop-access-token')
+        : null;
+
+    if (!localToken && !isClerkSignedIn) {
+      setInitialized(true);
+      return;
+    }
 
     try {
       const profile = await authService.getProfile();
@@ -46,7 +56,7 @@ export function useAuth() {
     } finally {
       setInitialized(true);
     }
-  }, [isInitialized, setUser, setInitialized]);
+  }, [isInitialized, isClerkLoaded, isClerkSignedIn, setUser, setInitialized]);
 
   // Run initialization once on app load
   useEffect(() => {
@@ -55,9 +65,16 @@ export function useAuth() {
 
   // Login handler
   const login = useCallback(
-    async (credentials: LoginDto) => {
+    async (
+      credentials: LoginDto,
+      options?: { requiredRole?: AuthUser['role']; redirect?: boolean },
+    ) => {
       try {
         const data = await authService.login(credentials);
+
+        if (options?.requiredRole && data.user.role !== options.requiredRole) {
+          throw new Error('Tài khoản này không có quyền truy cập trang quản trị.');
+        }
 
         setUser(data.user);
         if (data.accessToken && data.accessToken !== 'demo-access-token') {
@@ -66,16 +83,19 @@ export function useAuth() {
             window.localStorage.setItem('phoneshop-access-token', data.accessToken);
           }
         }
-        toast.success(`Chào mừng trở lại, ${data.user.fullName || data.user.email}!`);
+        toast.success(`Chao mung tro lai, ${data.user.fullName || data.user.email}!`);
 
         // Redirect based on role
-        if (data.user.role === 'ADMIN' || data.user.role === 'STAFF') {
-          router.push('/admin');
-        } else {
-          router.push('/shop');
+        if (options?.redirect !== false) {
+          if (data.user.role === 'ADMIN' || data.user.role === 'STAFF') {
+            router.push('/admin');
+          } else {
+            router.push('/shop');
+          }
         }
+        return data.user;
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+        const message = err instanceof Error ? err.message : 'Dang nhap that bai. Vui long kiem tra lai thong tin.';
         toast.error(message);
         throw err;
       }
@@ -95,7 +115,7 @@ export function useAuth() {
       }
       clearStore();
       clearCart();
-      toast.info('Bạn đã đăng xuất thành công.');
+      toast.info('Ban da dang xuat thanh cong.');
       router.push('/shop');
     }
   }, [clearStore, clearCart, router]);
@@ -105,10 +125,10 @@ export function useAuth() {
     async (data: RegisterDto) => {
       try {
         await authService.register(data);
-        toast.success('Đăng ký tài khoản thành công! Tiến hành đăng nhập.');
+        toast.success('Dang ky tai khoan thanh cong! Tien hanh dang nhap.');
         router.push('/login');
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.';
+        const message = err instanceof Error ? err.message : 'Dang ky that bai. Vui long kiem tra lai thong tin.';
         toast.error(message);
         throw err;
       }
@@ -119,8 +139,8 @@ export function useAuth() {
   return {
     user,
     accessToken,
-    isAuthenticated: Boolean(user || isSignedIn),
-    isInitialized,
+    isAuthenticated: Boolean(user || isClerkSignedIn),
+    isInitialized: isInitialized && isClerkLoaded,
     isCustomer: user?.role === 'CUSTOMER',
     isStaff: user?.role === 'STAFF',
     isAdmin: user?.role === 'ADMIN',

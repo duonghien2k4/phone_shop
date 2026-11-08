@@ -18,6 +18,11 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
+import {
+  areSameProductVariants,
+  getProductVariantKey,
+  getProductVariantLabel,
+} from '@/utils/product-variant';
 
 interface ProductDetailModalProps {
   product: MockProduct;
@@ -28,6 +33,12 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
   const router = useRouter();
   const { addToCart } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const galleryImages = Array.from(
+    new Set([product.image, ...(product.images ?? [])].filter(Boolean)),
+  );
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(
+    galleryImages[0] ?? product.image,
+  );
   
   // Default to first variant
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(
@@ -56,7 +67,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
 
   const handleAddToCart = (redirectCheckout = false, isStorePickup = false) => {
     const variantIndex = product.variants.findIndex(
-      (v) => v.storage === selectedVariant.storage
+      (variant) => areSameProductVariants(variant, selectedVariant)
     );
     const finalVariantIndex = variantIndex !== -1 ? variantIndex : 0;
 
@@ -107,7 +118,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
           <div className="modal-image-col">
             <div className="modal-image-container">
               <SafeImage
-                src={product.image}
+                src={selectedGalleryImage}
                 alt={product.name}
                 fill
                 style={{ objectFit: 'contain', padding: '16px' }}
@@ -123,6 +134,26 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                 )}
               </div>
             </div>
+            {galleryImages.length > 1 && (
+              <div className="product-gallery-thumbs mt-3">
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    className={selectedGalleryImage === image ? 'active' : ''}
+                    aria-label={`Xem ảnh ${index + 1} của ${product.name}`}
+                    onClick={() => setSelectedGalleryImage(image)}
+                  >
+                    <SafeImage
+                      src={image}
+                      alt=""
+                      fill
+                      style={{ objectFit: 'contain', padding: '4px' }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Title, Specs, Variants, Cart */}
@@ -167,12 +198,12 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                 <div className="modal-variants-list">
                   {product.variants.map((v, idx) => (
                     <button
-                      key={v.id || `${v.storage}-${idx}`}
+                      key={getProductVariantKey(v, idx)}
                       type="button"
-                      className={`modal-variant-btn ${selectedVariant.storage === v.storage ? 'active' : ''}`}
+                      className={`modal-variant-btn ${areSameProductVariants(selectedVariant, v) ? 'active' : ''}`}
                       onClick={() => setSelectedVariant(v)}
                     >
-                      <span className="v-storage">{v.storage}</span>
+                      <span className="v-storage">{getProductVariantLabel(v)}</span>
                       <span className="v-price">{formatVND(v.price)}</span>
                     </button>
                   ))}
@@ -281,4 +312,3 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
     </div>
   );
 }
-

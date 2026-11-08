@@ -11,6 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserPayload } from '../decorators/get-user.decorator';
+import { isSoleAdminEmail } from '../constants/admin.constants';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -32,6 +33,10 @@ export class RolesGuard implements CanActivate {
 
     const user = request.user;
 
-    return requiredRoles.some((role) => user?.role === role);
+    return requiredRoles.some(
+      (role) =>
+        user?.role === role &&
+        (role !== 'ADMIN' || isSoleAdminEmail(user.email)),
+    );
   }
 }

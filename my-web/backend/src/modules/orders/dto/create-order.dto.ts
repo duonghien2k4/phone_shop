@@ -53,6 +53,12 @@ export class OrderItemDto {
 export class CreateOrderDto {
   @IsOptional()
   @IsArray()
+  @IsInt({ each: true })
+  @Type(() => Number)
+  variantIds?: number[];
+
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items?: OrderItemDto[];

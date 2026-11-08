@@ -1,4 +1,5 @@
 import { PrismaService } from '../../database/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
@@ -9,7 +10,8 @@ describe('OrdersService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new OrdersService(prisma);
+    const configService = { get: jest.fn() } as unknown as ConfigService;
+    const service = new OrdersService(prisma, configService);
 
     await expect(service.findMyOrders(1)).resolves.toEqual([]);
   });

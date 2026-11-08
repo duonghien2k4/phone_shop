@@ -33,7 +33,7 @@ interface ProductQuery {
   limit?: number;
 }
 
-interface ProductApiItem {
+export interface ProductApiItem {
   id: number;
   name: string;
   slug: string;
@@ -67,6 +67,11 @@ interface ProductApiItem {
     imageUrl?: string | null;
     sku?: string | null;
     ram?: string | null;
+    stock?: number | null;
+    inventory?: {
+      stock?: number | null;
+      status?: string | null;
+    } | null;
   }> | null;
   specs?: {
     screen?: string | null;
@@ -84,7 +89,7 @@ const toNumber = (value: number | string | null | undefined, fallback = 0): numb
   return fallback;
 };
 
-const normalizeProduct = (item: ProductApiItem): MockProduct => {
+export const normalizeProduct = (item: ProductApiItem): MockProduct => {
   const brandName = item.brand?.name || 'Khác';
   const categoryName = item.category?.name || 'Điện thoại';
   const firstVariant = item.variants?.[0];
@@ -101,8 +106,19 @@ const normalizeProduct = (item: ProductApiItem): MockProduct => {
     description: item.description || 'Sản phẩm điện thoại chính hãng',
     price,
     badge: item.badge || (discount > 0 ? `Giảm -${discount}%` : 'Mới'),
-    badgeType: (item.badgeType as any) || (discount > 0 ? 'danger' : 'success'),
+    badgeType:
+      item.badgeType === 'success' ||
+      item.badgeType === 'warning' ||
+      item.badgeType === 'danger' ||
+      item.badgeType === 'info'
+        ? item.badgeType
+        : discount > 0
+          ? 'danger'
+          : 'success',
     image,
+    images: (item.images ?? [])
+      .map((productImage) => productImage.url)
+      .filter((url): url is string => Boolean(url && url !== image)),
     brand: brandName,
     category: categoryName,
     tags: item.tags?.length ? item.tags : [brandName.toLowerCase(), categoryName.toLowerCase()],
@@ -120,17 +136,35 @@ const normalizeProduct = (item: ProductApiItem): MockProduct => {
     variants: (item.variants && item.variants.length > 0
       ? item.variants
       : [{ storage: '128GB', price, oldPrice: price }]
-    ).map((variant, idx) => ({
-      id: variant.id ? Number(variant.id) : (Number(item.id) * 10 + idx),
-      productId: Number(item.id),
-      storage: variant.storage || '128GB',
-      color: variant.color || undefined,
-      sku: variant.sku || undefined,
-      imageUrl: variant.imageUrl || undefined,
-      ram: variant.ram || undefined,
-      price: toNumber(variant.price, price),
-      oldPrice: variant.oldPrice ? toNumber(variant.oldPrice, price) : (variant.price ? toNumber(variant.price, price) : price),
-    })),
+    ).map((variant, idx) => {
+      const variantStock =
+        variant.inventory?.stock !== undefined && variant.inventory?.stock !== null
+          ? Number(variant.inventory.stock)
+          : variant.stock !== undefined && variant.stock !== null
+            ? Number(variant.stock)
+            : 10;
+      return {
+        id: variant.id ? Number(variant.id) : (Number(item.id) * 10 + idx),
+        productId: Number(item.id),
+        storage: variant.storage || '128GB',
+        color: variant.color || undefined,
+        sku: variant.sku || undefined,
+        imageUrl: variant.imageUrl || undefined,
+        ram: variant.ram || undefined,
+        price: toNumber(variant.price, price),
+        oldPrice: variant.oldPrice ? toNumber(variant.oldPrice, price) : (variant.price ? toNumber(variant.price, price) : price),
+        stock: variantStock,
+        inventory: variant.inventory
+          ? {
+              stock: variantStock,
+              status: variant.inventory.status || (variantStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'),
+            }
+          : {
+              stock: variantStock,
+              status: variantStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+            },
+      };
+    }),
   };
 };
 
@@ -183,5 +217,11 @@ export const productService = {
 
   submitReview: async (slug: string, data: { rating: number; comment: string }): Promise<ProductReview> => {
     return api.post<ProductReview>(`/products/${encodeURIComponent(slug)}/reviews`, data);
+  },
+
+  canReview: async (slug: string): Promise<{ canReview: boolean; reason?: string }> => {
+    return api.get<{ canReview: boolean; reason?: string }>(
+      `/products/${encodeURIComponent(slug)}/can-review`,
+    );
   },
 };

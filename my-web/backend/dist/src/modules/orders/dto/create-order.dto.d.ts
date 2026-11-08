@@ -10,6 +10,7 @@ export declare class OrderItemDto {
     unitPrice: number;
 }
 export declare class CreateOrderDto {
+    variantIds?: number[];
     items?: OrderItemDto[];
     shippingFee?: number;
     discount?: number;

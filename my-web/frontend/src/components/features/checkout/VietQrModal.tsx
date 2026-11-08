@@ -1,17 +1,18 @@
 /**
  * VietQrModal Component
  * Renders the bank QR transfer modal window for 100% payments or 5% deposit reservations.
- * Displays bank details, dynamic QR image, transfer content, and countdown timer.
+ * Displays bank details, dynamic QR image, transfer content, and explicit confirmation button.
  *
  * Related: src/app/checkout/page.tsx, src/constants/config.ts, src/constants/labels.ts
  * Pattern: Presentation Modal Component
  */
 
-import React from 'react';
-import { QrCode, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { QrCode, Check, Copy } from 'lucide-react';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
 import { formatVND } from '@/utils/format';
+import { toast } from '@/store/useToastStore';
 
 interface VietQrModalProps {
   isDepositMode: boolean;
@@ -21,7 +22,6 @@ interface VietQrModalProps {
   qrTransferAmount: number;
   generatedOrderCode: string;
   vietQrUrl: string;
-  qrCountdown: number;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -34,10 +34,20 @@ export default function VietQrModal({
   qrTransferAmount,
   generatedOrderCode,
   vietQrUrl,
-  qrCountdown,
   onConfirm,
   onClose,
 }: VietQrModalProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const transferContent = `${isDepositMode ? 'COC5' : 'SOC'}${generatedOrderCode}`;
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    toast.success(`Đã sao chép ${fieldName}`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
   return (
     <div className="qr-modal-overlay">
       <div className="qr-modal-container">
@@ -52,7 +62,7 @@ export default function VietQrModal({
         </p>
 
         {/* QR Code Image */}
-        <div className="qr-code-img-wrapper">
+        <div className="qr-code-img-wrapper" style={{ display: 'flex', justifyContent: 'center', padding: '12px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={vietQrUrl} 
@@ -69,7 +79,17 @@ export default function VietQrModal({
           </div>
           <div className="qr-info-row">
             <span className="qr-info-label">{LABELS.CHECKOUT.QR_ACC_NO}</span>
-            <span className="qr-info-val">{APP_CONFIG.BANK.ACCOUNT_NO}</span>
+            <span className="qr-info-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {APP_CONFIG.BANK.ACCOUNT_NO}
+              <button
+                type="button"
+                onClick={() => copyToClipboard(APP_CONFIG.BANK.ACCOUNT_NO, 'Số tài khoản')}
+                className="text-slate-500 hover:text-slate-800"
+                title="Sao chép số tài khoản"
+              >
+                {copiedField === 'Số tài khoản' ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              </button>
+            </span>
           </div>
           <div className="qr-info-row">
             <span className="qr-info-label">{LABELS.CHECKOUT.QR_ACC_NAME}</span>
@@ -81,7 +101,17 @@ export default function VietQrModal({
           </div>
           <div className="qr-info-row">
             <span className="qr-info-label">{LABELS.CHECKOUT.QR_CONTENT}</span>
-            <span className="qr-info-val message">{isDepositMode ? 'COC5' : 'SOC'}{generatedOrderCode}</span>
+            <span className="qr-info-val message" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {transferContent}
+              <button
+                type="button"
+                onClick={() => copyToClipboard(transferContent, 'Nội dung chuyển khoản')}
+                className="text-slate-500 hover:text-slate-800"
+                title="Sao chép nội dung"
+              >
+                {copiedField === 'Nội dung chuyển khoản' ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              </button>
+            </span>
           </div>
         </div>
 
@@ -90,9 +120,9 @@ export default function VietQrModal({
             type="button" 
             className="btn btn-primary checkout-btn" 
             onClick={onConfirm}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px', fontSize: '14px', fontWeight: 700 }}
           >
-            {isDepositMode ? 'Đã chuyển khoản Cọc 5%' : LABELS.CHECKOUT.QR_CONFIRM_BTN}
+            {isDepositMode ? 'Tôi đã chuyển khoản Cọc 5%' : 'Tôi đã chuyển khoản thành công'}
           </button>
 
           <button 
@@ -105,12 +135,9 @@ export default function VietQrModal({
           </button>
         </div>
 
-        {/* Simulated automatic detect warning */}
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-          <Loader2 className="animate-spin" size={12} />
-          <span>Tự động xác nhận sau {qrCountdown} giây...</span>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.4' }}>
+          Vui lòng hoàn tất chuyển khoản trước khi nhấn xác nhận. Hệ thống sẽ kiểm tra đối soát giao dịch và gửi cập nhật qua đơn hàng của bạn.
         </div>
-
       </div>
     </div>
   );

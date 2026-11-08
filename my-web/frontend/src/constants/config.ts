@@ -26,10 +26,10 @@ export const APP_CONFIG = {
 
   // Bank transfer configuration
   BANK: {
-    ACCOUNT_NAME: 'NGUYEN TIEN DAT',
-    ACCOUNT_NO: '0337562201',
-    BANK_NAME: 'MB Bank (Ngân hàng Quân đội)',
-    BANK_ID: 'mbbank',
+    ACCOUNT_NAME: 'Thu Hiền Hiền',
+    ACCOUNT_NO: '4260824601',
+    BANK_NAME: 'BIDV-PGD Xuân Hòa',
+    BANK_ID: 'BIDV',
   },
 
   // Store Pickup appointment timeslots

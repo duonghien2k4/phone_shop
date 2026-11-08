@@ -78,6 +78,46 @@ export interface CustomerInstallmentApplication {
   statusHistory?: InstallmentHistoryItem[];
 }
 
+export interface InstallmentOtpChallenge {
+  challengeId: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export interface CreateInstallmentApplicationRequest {
+  otpChallengeId: string;
+  financePartnerId: string;
+  productId?: number;
+  productVariantId?: number;
+  orderId?: number;
+  productName: string;
+  productPrice: number;
+  prepaidPercent: number;
+  downPayment: number;
+  financedAmount: number;
+  termMonths: number;
+  monthlyPayment: number;
+  fullName: string;
+  citizenId: string;
+  dateOfBirth?: string;
+  gender?: string;
+  phoneNumber: string;
+  email: string;
+  permanentAddress?: string;
+  currentAddress?: string;
+  jobTitle?: string;
+  monthlyIncome?: string;
+  companyName?: string;
+  refRelation?: string;
+  refName?: string;
+  refPhone?: string;
+  deliveryMethod?: string;
+  pickupStoreId?: string;
+  idCardFrontUrl?: string;
+  idCardBackUrl?: string;
+  signatureUrl?: string;
+}
+
 export const installmentService = {
   getPartners: async (): Promise<FinancePartner[]> => {
     try {
@@ -128,8 +168,26 @@ export const installmentService = {
     );
   },
 
+  sendOtp: async (email: string): Promise<InstallmentOtpChallenge> => {
+    return api.post<InstallmentOtpChallenge>('/installment/otp/send', {
+      email: email.trim(),
+    });
+  },
+
+  verifyOtp: async (
+    challengeId: string,
+    email: string,
+    code: string,
+  ): Promise<{ verified: true }> => {
+    return api.post<{ verified: true }>('/installment/otp/verify', {
+      challengeId,
+      email: email.trim(),
+      code,
+    });
+  },
+
   createApplication: async (
-    data: any,
+    data: CreateInstallmentApplicationRequest,
   ): Promise<CustomerInstallmentApplication> => {
     return api.post<CustomerInstallmentApplication>('/installment/applications', data);
   },

@@ -269,6 +269,10 @@ export declare class ProductsService {
         total: number;
         avgRating: number;
     }>;
+    canUserReview(slug: string, userId: number): Promise<{
+        canReview: boolean;
+        reason: string | null;
+    }>;
     createOrUpdateReview(slug: string, userId: number, data: {
         rating: number;
         comment: string;

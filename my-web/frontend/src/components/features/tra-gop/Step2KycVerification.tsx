@@ -16,7 +16,6 @@ import {
   Truck,
   Lightbulb,
   XCircle,
-  Link as LinkIcon,
   Upload,
 } from 'lucide-react';
 import { useInstallmentFlowStore } from '@/store/useInstallmentFlowStore';
@@ -316,7 +315,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.fullName}
+                  placeholder="NGUYEN VAN A"
                   onChange={(e) => updateKycInfo({ fullName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all uppercase"
                 />
@@ -328,7 +327,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.cccdNumber}
+                  placeholder="123456789012"
                   onChange={(e) => updateKycInfo({ cccdNumber: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all font-mono"
                 />
@@ -340,7 +339,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.dob}
+                  placeholder="DD/MM/YYYY"
                   onChange={(e) => updateKycInfo({ dob: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -391,15 +390,12 @@ export default function Step2KycVerification() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-bold text-[#444656]">
-                    Số điện thoại nhận OTP
+                    Số điện thoại liên hệ
                   </label>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006347]">
-                    <LinkIcon className="size-3" /> Đã liên kết Zalo/Viettel
-                  </span>
                 </div>
                 <input
                   type="text"
-                  value={kycInfo.phone}
+                  placeholder="0901234567"  
                   onChange={(e) => updateKycInfo({ phone: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -407,10 +403,12 @@ export default function Step2KycVerification() {
 
               <div>
                 <label className="block text-xs font-bold text-[#444656] mb-1.5">
-                  Email nhận hợp đồng điện tử
+                  Email nhận mã OTP & hợp đồng điện tử
                 </label>
                 <input
                   type="email"
+                  required
+                  placeholder="name@gmail.com"
                   value={kycInfo.email}
                   onChange={(e) => updateKycInfo({ email: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
@@ -423,7 +421,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.permanentAddress}
+                  placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
                   onChange={(e) => updateKycInfo({ permanentAddress: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -435,7 +433,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.currentAddress}
+                  placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
                   onChange={(e) => updateKycInfo({ currentAddress: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -498,7 +496,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.companyName}
+                  placeholder="Tên công ty / cơ quan làm việc"
                   onChange={(e) => updateKycInfo({ companyName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -544,7 +542,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.refName}
+                  placeholder="Nguyễn Văn B"
                   onChange={(e) => updateKycInfo({ refName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none"
                 />
@@ -556,7 +554,7 @@ export default function Step2KycVerification() {
                 </label>
                 <input
                   type="text"
-                  value={kycInfo.refPhone}
+                  placeholder="0901234567"
                   onChange={(e) => updateKycInfo({ refPhone: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none"
                 />
@@ -795,7 +793,7 @@ export default function Step2KycVerification() {
             <div className="flex items-center gap-3 pb-4 border-b border-[#c4c5d9]/30">
               <div className="w-16 h-16 rounded-xl bg-[#f2f3ff] p-2 shrink-0 border border-[#c4c5d9]/30 overflow-hidden flex items-center justify-center">
                 <img
-                  src={selectedDevice.image}
+                  src={selectedDevice.image || '/placeholder-phone.svg'}
                   alt={selectedDevice.name}
                   className="w-full h-full object-contain"
                 />
@@ -905,4 +903,3 @@ export default function Step2KycVerification() {
     </div>
   );
 }
-

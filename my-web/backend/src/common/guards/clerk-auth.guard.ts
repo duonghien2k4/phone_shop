@@ -10,6 +10,7 @@ import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
 import { Request } from 'express';
 import { UserPayload } from '../decorators/get-user.decorator';
+import { getEffectiveRole } from '../constants/admin.constants';
 
 type ClerkClaims = {
   sub: string;
@@ -31,6 +32,7 @@ export class ClerkAuthGuard implements CanActivate {
       ? authorization.slice('Bearer '.length)
       : null;
     const secretKey = this.configService.get<string>('clerk.secretKey');
+    const jwtKey = this.configService.get<string>('clerk.jwtKey');
     const localJwtSecret = this.configService.get<string>('jwt.accessSecret');
 
     if (!token) {
@@ -54,10 +56,17 @@ export class ClerkAuthGuard implements CanActivate {
             if (user.status === 'BANNED') {
               throw new UnauthorizedException('Tài khoản của bạn đã bị khóa');
             }
+            const role = getEffectiveRole(user.email, user.role);
+            if (role !== user.role) {
+              await this.prisma.user.update({
+                where: { id: user.id },
+                data: { role: 'CUSTOMER', refreshToken: null },
+              });
+            }
             request.user = {
               sub: user.id,
               email: user.email,
-              role: user.role,
+              role,
             };
             return true;
           }
@@ -74,10 +83,29 @@ export class ClerkAuthGuard implements CanActivate {
 
     let clerkUserId: string | null = null;
     try {
-      const claims = (await verifyToken(token, {
-        secretKey,
+      const verifyOptions = {
+        ...(secretKey ? { secretKey } : {}),
+        ...(jwtKey ? { jwtKey } : {}),
         clockSkewInMs: 300000,
-      })) as ClerkClaims;
+      };
+      let claims: ClerkClaims;
+      try {
+        claims = (await verifyToken(token, verifyOptions)) as ClerkClaims;
+      } catch (error: unknown) {
+        const reason =
+          typeof error === 'object' && error !== null && 'reason' in error
+            ? String(error.reason)
+            : '';
+
+        if (reason !== 'jwk-kid-mismatch' || jwtKey) {
+          throw error;
+        }
+
+        claims = (await verifyToken(token, {
+          ...verifyOptions,
+          skipJwksCache: true,
+        })) as ClerkClaims;
+      }
 
       clerkUserId = claims?.sub ?? null;
     } catch (error: any) {
@@ -101,8 +129,12 @@ export class ClerkAuthGuard implements CanActivate {
 
       if (!clerkUserId) {
         console.warn(`[ClerkAuthGuard] Token verification failed: ${reason}`);
+        const message =
+          reason === 'jwk-kid-mismatch'
+            ? 'Khóa Clerk của frontend và backend không cùng instance. Hãy đồng bộ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY với CLERK_SECRET_KEY, hoặc cấu hình CLERK_JWT_KEY từ cùng Clerk instance.'
+            : `Token Clerk không hợp lệ hoặc đã hết hạn (${reason})`;
         throw new UnauthorizedException(
-          `Token Clerk không hợp lệ hoặc đã hết hạn (${reason})`,
+          message,
         );
       }
     }
@@ -187,10 +219,19 @@ export class ClerkAuthGuard implements CanActivate {
       throw new UnauthorizedException('Tài khoản của bạn đã bị khóa');
     }
 
+    const role = getEffectiveRole(user.email, user.role);
+    if (role !== user.role) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'CUSTOMER', refreshToken: null },
+        include: { profile: true },
+      });
+    }
+
     request.user = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role,
       clerkUserId,
     };
     return true;

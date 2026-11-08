@@ -24,6 +24,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useWishlist } from '@/hooks/useWishlist';
+import {
+  areSameProductVariants,
+  getProductVariantKey,
+  getProductVariantLabel,
+} from '@/utils/product-variant';
 
 interface ProductCardProps {
   product: MockProduct;
@@ -46,6 +51,12 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
   const addCompare = useCompareStore((state) => state.addProduct);
   const isCompared = isMounted && comparedProducts.some((p) => p.id === product.id);
 
+  const isOutOfStock =
+    (selectedVariant?.stock !== undefined && selectedVariant.stock <= 0) ||
+    selectedVariant?.inventory?.status === 'OUT_OF_STOCK' ||
+    product.inStock === false ||
+    (product.stock !== undefined && product.stock <= 0);
+
   const discountPercent = selectedVariant.oldPrice && selectedVariant.oldPrice > selectedVariant.price
     ? Math.round(((selectedVariant.oldPrice - selectedVariant.price) / selectedVariant.oldPrice) * 100)
     : 0;
@@ -67,13 +78,21 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
     >
       {/* Top action badges */}
       <div className="product-card-top-meta">
-        {product.installment && (
-          <span className="badge-installment">{LABELS.PRODUCT.INSTALLMENT_BADGE}</span>
-        )}
-        {product.fastDelivery && (
-          <span className="badge-fast-delivery">
-            <Zap size={10} fill="currentColor" /> {LABELS.PRODUCT.FAST_DELIVERY_BADGE}
+        {isOutOfStock ? (
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-red-600 text-white shadow-sm">
+            Hết hàng
           </span>
+        ) : (
+          <>
+            {product.installment && (
+              <span className="badge-installment">{LABELS.PRODUCT.INSTALLMENT_BADGE}</span>
+            )}
+            {product.fastDelivery && (
+              <span className="badge-fast-delivery">
+                <Zap size={10} fill="currentColor" /> {LABELS.PRODUCT.FAST_DELIVERY_BADGE}
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -140,17 +159,17 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
         <div className="product-variants-selector" onClick={(e) => e.stopPropagation()}>
           {product.variants.map((v, idx) => (
             <Button
-              key={v.id || `${v.storage}-${idx}`}
+              key={getProductVariantKey(v, idx)}
               type="button"
-              variant={selectedVariant.storage === v.storage ? 'default' : 'outline'}
+              variant={areSameProductVariants(selectedVariant, v) ? 'default' : 'outline'}
               size="sm"
-              className={`variant-pill-btn ${selectedVariant.storage === v.storage ? 'active' : ''}`}
+              className={`variant-pill-btn ${areSameProductVariants(selectedVariant, v) ? 'active' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedVariant(v);
               }}
             >
-              {v.storage}
+              {getProductVariantLabel(v)}
             </Button>
           ))}
         </div>
@@ -221,13 +240,23 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
         {/* Quick Action Footer */}
         <div className="product-card-action-bar">
           {onViewDetail ? (
-            <Button type="button" onClick={onViewDetail} className="btn-buy-now" size="lg">
-              {LABELS.COMMON.BUY_NOW}
+            <Button
+              type="button"
+              onClick={isOutOfStock ? undefined : onViewDetail}
+              disabled={isOutOfStock}
+              className={`btn-buy-now ${isOutOfStock ? 'opacity-60 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''}`}
+              size="lg"
+            >
+              {isOutOfStock ? 'Tạm hết hàng' : LABELS.COMMON.BUY_NOW}
             </Button>
           ) : (
-            <Link href={`/products/${product.slug}`} className="block">
-              <Button size="lg" className="btn-buy-now">
-                {LABELS.COMMON.BUY_NOW}
+            <Link href={isOutOfStock ? '#' : `/products/${product.slug}`} className="block">
+              <Button
+                size="lg"
+                disabled={isOutOfStock}
+                className={`btn-buy-now ${isOutOfStock ? 'opacity-60 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''}`}
+              >
+                {isOutOfStock ? 'Tạm hết hàng' : LABELS.COMMON.BUY_NOW}
               </Button>
             </Link>
           )}

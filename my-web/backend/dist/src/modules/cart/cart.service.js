@@ -26,6 +26,7 @@ let CartService = class CartService {
                         variant: {
                             include: {
                                 product: true,
+                                inventory: true,
                             },
                         },
                     },
@@ -41,27 +42,35 @@ let CartService = class CartService {
             productName: item.variant.product.name,
             color: item.variant.color,
             storage: item.variant.storage,
-            imageUrl: item.variant.imageUrl,
+            imageUrl: item.variant.imageUrl || item.variant.product.image,
             price: Number(item.variant.price),
             quantity: item.quantity,
+            stock: item.variant.inventory?.stock ?? 0,
         }));
     }
     async addItem(userId, dto) {
         if (dto.quantity <= 0) {
             throw new common_1.BadRequestException('Số lượng sản phẩm phải lớn hơn 0');
         }
+        const variant = await this.prisma.productVariant.findUnique({
+            where: { id: dto.variantId },
+            include: {
+                product: true,
+                inventory: true,
+            },
+        });
+        if (!variant) {
+            throw new common_1.NotFoundException('Sản phẩm không tồn tại');
+        }
+        const availableStock = variant.inventory?.stock ?? 0;
+        if (availableStock <= 0 || variant.inventory?.status === 'OUT_OF_STOCK') {
+            throw new common_1.BadRequestException('Sản phẩm này hiện đã hết hàng');
+        }
         const cart = await this.prisma.cart.upsert({
             where: { userId },
             update: {},
             create: { userId },
         });
-        const variant = await this.prisma.productVariant.findUnique({
-            where: { id: dto.variantId },
-            include: { product: true },
-        });
-        if (!variant) {
-            throw new common_1.NotFoundException('Sản phẩm không tồn tại');
-        }
         const item = await this.prisma.cartItem.findUnique({
             where: {
                 cartId_variantId: {
@@ -70,6 +79,10 @@ let CartService = class CartService {
                 },
             },
         });
+        const currentQtyInCart = item ? item.quantity : 0;
+        if (currentQtyInCart + dto.quantity > availableStock) {
+            throw new common_1.BadRequestException(`Chỉ còn ${availableStock} sản phẩm trong kho (trong giỏ đã có ${currentQtyInCart})`);
+        }
         if (item) {
             await this.prisma.cartItem.update({
                 where: { id: item.id },
@@ -90,6 +103,12 @@ let CartService = class CartService {
     async updateQuantity(userId, variantId, dto) {
         if (dto.quantity <= 0) {
             return this.removeItem(userId, variantId);
+        }
+        const inventory = await this.prisma.inventory.findUnique({
+            where: { variantId },
+        });
+        if (inventory && dto.quantity > inventory.stock) {
+            throw new common_1.BadRequestException(`Chỉ còn ${inventory.stock} sản phẩm trong kho`);
         }
         const cart = await this.prisma.cart.findUnique({
             where: { userId },

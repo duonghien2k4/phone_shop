@@ -1,20 +1,25 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { useAuth, useClerk } from '@clerk/nextjs';
+import { useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import { useWishlistStore } from '@/store/useWishlistStore';
 import { wishlistService } from '@/services/wishlist.service';
 import { toast } from '@/store/useToastStore';
 
 export function useWishlist() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useClerkAuth();
   const { openSignIn } = useClerk();
+  const { user: internalUser, isInitialized: isInternalLoaded } = useAuthStore();
+  const isSignedIn = Boolean(isClerkSignedIn || internalUser);
+  const isLoaded = isClerkLoaded && isInternalLoaded;
   const router = useRouter();
   const {
     productIds,
     items,
     isLoading,
+    hasFetched,
     setWishlist,
     toggleLocal,
     isWishlisted,
@@ -38,7 +43,7 @@ export function useWishlist() {
       if (!isLoaded) return false;
 
       if (!isSignedIn) {
-        toast.info('Vui lòng đăng nhập để lưu sản phẩm vào danh sách yêu thích');
+        toast.info('Vui long dang nhap de luu san pham vao danh sach yeu thich');
         if (openSignIn) {
           openSignIn();
         } else {
@@ -49,24 +54,22 @@ export function useWishlist() {
 
       // Optimistic update
       const willBeInWishlist = toggleLocal(productId);
-      const displayName = productName || 'sản phẩm';
+      const displayName = productName || 'san pham';
 
       if (willBeInWishlist) {
-        toast.success(`Đã thêm ${displayName} vào yêu thích`);
+        toast.success(`Da them ${displayName} vao yeu thich`);
       } else {
-        toast.info(`Đã bỏ ${displayName} khỏi yêu thích`);
+        toast.info(`Da bo ${displayName} khoi yeu thich`);
       }
 
       try {
         const res = await wishlistService.toggleWishlist(productId);
-        // Refresh wishlist in sync
         const fresh = await wishlistService.getWishlist();
         setWishlist(fresh.productIds || [], fresh.items || []);
         return res.inWishlist;
-      } catch (error: any) {
-        // Rollback optimistic update on error
+      } catch (error: unknown) {
         toggleLocal(productId);
-        const msg = error?.message || 'Không thể cập nhật danh sách yêu thích';
+        const msg = error instanceof Error ? error.message : 'Khong the cap nhat danh sach yeu thich';
         toast.error(msg);
         return !willBeInWishlist;
       }
@@ -78,6 +81,9 @@ export function useWishlist() {
     productIds,
     items,
     isLoading,
+    hasFetched,
+    isLoaded,
+    isSignedIn,
     isWishlisted: (productId: number) => isWishlisted(productId),
     toggleWishlist: toggle,
   };

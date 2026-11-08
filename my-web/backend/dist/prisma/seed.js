@@ -37,6 +37,7 @@ require("dotenv/config");
 const client_1 = require("@prisma/client");
 const pg_1 = require("pg");
 const adapter_pg_1 = require("@prisma/adapter-pg");
+const admin_constants_1 = require("../src/common/constants/admin.constants");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const bcrypt = __importStar(require("bcrypt"));
@@ -51,13 +52,13 @@ async function main() {
     const adminPasswordHash = await bcrypt.hash('admin123456', salt);
     const customerPasswordHash = await bcrypt.hash('customer123456', salt);
     const admin = await prisma.user.upsert({
-        where: { email: 'admin@socmobile.vn' },
+        where: { email: admin_constants_1.SOLE_ADMIN_EMAIL },
         update: {
             role: 'ADMIN',
             status: 'ACTIVE',
         },
         create: {
-            email: 'admin@socmobile.vn',
+            email: admin_constants_1.SOLE_ADMIN_EMAIL,
             passwordHash: adminPasswordHash,
             role: 'ADMIN',
             status: 'ACTIVE',
@@ -71,25 +72,14 @@ async function main() {
             },
         },
     });
-    await prisma.user.upsert({
-        where: { email: 'admin@phoneshop.vn' },
-        update: {
+    await prisma.user.updateMany({
+        where: {
             role: 'ADMIN',
-            status: 'ACTIVE',
+            NOT: { email: admin_constants_1.SOLE_ADMIN_EMAIL },
         },
-        create: {
-            email: 'admin@phoneshop.vn',
-            passwordHash: adminPasswordHash,
-            role: 'ADMIN',
-            status: 'ACTIVE',
-            profile: {
-                create: {
-                    fullName: 'Quan Tri Vien Soc Mobile',
-                    phone: '0988888888',
-                    address: '180 Nguyen Trai',
-                    city: 'Ha Noi',
-                },
-            },
+        data: {
+            role: 'CUSTOMER',
+            refreshToken: null,
         },
     });
     const customer = await prisma.user.upsert({

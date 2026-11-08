@@ -14,14 +14,27 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
+const clerk_auth_guard_1 = require("../../common/guards/clerk-auth.guard");
+const roles_guard_1 = require("../../common/guards/roles.guard");
+const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const admin_service_1 = require("./admin.service");
+const cloudinary_upload_service_1 = require("./cloudinary-upload.service");
 let AdminController = class AdminController {
     adminService;
-    constructor(adminService) {
+    cloudinaryUploadService;
+    constructor(adminService, cloudinaryUploadService) {
         this.adminService = adminService;
+        this.cloudinaryUploadService = cloudinaryUploadService;
     }
     getDashboardStats() {
         return this.adminService.getDashboardStats();
+    }
+    uploadProductImage(file) {
+        if (!file) {
+            throw new common_1.BadRequestException('Vui lòng chọn ảnh để tải lên');
+        }
+        return this.cloudinaryUploadService.uploadProductImage(file);
     }
     getProducts(page = '1', limit = '10', search = '', categoryId, brandId) {
         return this.adminService.getProducts(+page, +limit, search, categoryId ? +categoryId : undefined, brandId ? +brandId : undefined);
@@ -151,6 +164,23 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getDashboardStats", null);
+__decorate([
+    (0, common_1.Post)('products/images/upload'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_request, file, callback) => {
+            if (!file.mimetype.startsWith('image/')) {
+                callback(new common_1.BadRequestException('Chỉ chấp nhận tệp hình ảnh'), false);
+                return;
+            }
+            callback(null, true);
+        },
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "uploadProductImage", null);
 __decorate([
     (0, common_1.Get)('products'),
     __param(0, (0, common_1.Query)('page')),
@@ -459,7 +489,10 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getAiFeedbacks", null);
 exports.AdminController = AdminController = __decorate([
+    (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
     (0, common_1.Controller)('admin'),
-    __metadata("design:paramtypes", [admin_service_1.AdminService])
+    __metadata("design:paramtypes", [admin_service_1.AdminService,
+        cloudinary_upload_service_1.CloudinaryUploadService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

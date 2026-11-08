@@ -7,7 +7,7 @@ import { Smartphone, Eye, EyeOff, ShieldCheck, KeyRound, ArrowRight } from 'luci
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { user, isInitialized, isAdmin, isStaff, login } = useAuth();
 
   const [identifier, setIdentifier] = useState('admin@socmobile.vn');
   const [password, setPassword] = useState('admin123456');
@@ -15,6 +15,31 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  React.useEffect(() => {
+    const url = new URL(window.location.href);
+    const sensitiveParameters = ['user-identifier', 'user-password'];
+    const hasSensitiveParameters = sensitiveParameters.some((parameter) =>
+      url.searchParams.has(parameter),
+    );
+
+    if (hasSensitiveParameters) {
+      sensitiveParameters.forEach((parameter) =>
+        url.searchParams.delete(parameter),
+      );
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (isInitialized && user && (isAdmin || isStaff)) {
+      router.replace('/admin');
+    }
+  }, [isInitialized, user, isAdmin, isStaff, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,10 +50,17 @@ export default function AdminLoginPage() {
       await login({
         email: identifier.trim(),
         password,
+      }, {
+        requiredRole: 'ADMIN',
+        redirect: false,
       });
-      router.push('/admin');
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Email hoặc mật khẩu không chính xác.');
+      router.replace('/admin');
+    } catch (err: unknown) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : 'Email hoặc mật khẩu không chính xác.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +105,12 @@ export default function AdminLoginPage() {
           )}
 
           {/* Login Form */}
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form
+            action="/admin/login"
+            method="post"
+            className="space-y-4"
+            onSubmit={handleSubmit}
+          >
             {/* Input: Email / Staff ID */}
             <div className="space-y-1.5">
               <label
@@ -87,6 +124,7 @@ export default function AdminLoginPage() {
                 name="user-identifier"
                 type="text"
                 required
+                autoComplete="username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="admin@socmobile.vn"
@@ -117,6 +155,7 @@ export default function AdminLoginPage() {
                   name="user-password"
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu"
@@ -161,25 +200,8 @@ export default function AdminLoginPage() {
             </div>
           </form>
 
-          {/* Divider */}
-          <div className="relative flex items-center py-1">
-            <div className="flex-grow border-t border-[#c3c6d7]/60" />
-            <span className="shrink-0 mx-3 text-[11px] font-bold uppercase tracking-wider text-[#737686]">
-              Hoặc
-            </span>
-            <div className="flex-grow border-t border-[#c3c6d7]/60" />
-          </div>
-
-          {/* Alternative Options */}
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={() => router.push('/sign-in')}
-              className="w-full h-10 px-3 bg-white hover:bg-[#eff4ff] border border-[#c3c6d7]/80 text-[#0b1c30] text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span className="inline-block w-4 h-4 text-[#EA4335] font-bold">G</span>
-              <span>Tiếp tục với Google Workspace</span>
-            </button>
+          {/* Mode Switch or Preview Option */}
+          <div className="pt-2">
             <button
               type="button"
               onClick={() => router.push('/admin?preview=1')}
@@ -200,4 +222,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-

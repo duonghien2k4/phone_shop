@@ -2,6 +2,7 @@ import { api } from '@/lib/api-client';
 import type { PaymentMethodType } from '@/types/order';
 
 export interface CreateOrderRequest {
+  variantIds?: number[];
   shippingFee: number;
   discount: number;
   voucherCode?: string | null;

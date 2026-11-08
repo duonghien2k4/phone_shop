@@ -173,22 +173,14 @@ async function runMasterSeed() {
     },
   });
 
-  const adminPhoneShop = await prisma.user.upsert({
-    where: { email: 'admin@phoneshop.vn' },
-    update: { role: 'ADMIN', status: 'ACTIVE' },
-    create: {
-      email: 'admin@phoneshop.vn',
-      passwordHash: adminPasswordHash,
+  await prisma.user.updateMany({
+    where: {
       role: 'ADMIN',
-      status: 'ACTIVE',
-      profile: {
-        create: {
-          fullName: 'Quan Tri Vien Soc Mobile',
-          phone: '0988888888',
-          address: '180 Nguyen Trai',
-          city: 'Ha Noi',
-        },
-      },
+      NOT: { email: 'admin@socmobile.vn' },
+    },
+    data: {
+      role: 'CUSTOMER',
+      refreshToken: null,
     },
   });
 

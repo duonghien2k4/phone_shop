@@ -10,7 +10,8 @@
 'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore, CartItem } from '@/store/useCartStore';
 import { cartService } from '@/services/cart.service';
 import { toast } from '@/store/useToastStore';
@@ -22,7 +23,10 @@ function isClockSkewError(msg: string): boolean {
 }
 
 export function useCart() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useClerkAuth();
+  const { user: internalUser, isInitialized: isInternalLoaded } = useAuthStore();
+  const isSignedIn = Boolean(isClerkSignedIn || internalUser);
+  const isLoaded = isClerkLoaded && isInternalLoaded;
   const cartStore = useCartStore();
   const syncAttempts = useRef(0);
   const {
@@ -75,14 +79,12 @@ export function useCart() {
         const msg = error instanceof Error ? error.message : String(error);
 
         if (isClockSkewError(msg) && syncAttempts.current < 3) {
-          // Token not yet active — retry with exponential backoff (2s, 4s, 8s)
           syncAttempts.current += 1;
           const delay = 2000 * syncAttempts.current;
           void loadServerCart(delay);
           return;
         }
 
-        // Only warn once per session for non-clock-skew errors
         if (!isClockSkewError(msg)) {
           console.warn('Cart sync warning:', msg);
         }
@@ -110,7 +112,7 @@ export function useCart() {
   const addToCart = useCallback(
     async (item: CartItem) => {
       addItemToStore(item);
-      toast.success(`Đã thêm ${item.productName} vào giỏ hàng`);
+      toast.success(`Da them ${item.productName} vao gio hang`);
 
       if (isSignedIn) {
         await syncWithBackend(async () => {
@@ -130,7 +132,7 @@ export function useCart() {
       removeItemFromStore(variantId);
 
       if (item) {
-        toast.info(`Đã xóa ${item.productName} khỏi giỏ hàng`);
+        toast.info(`Da xoa ${item.productName} khoi gio hang`);
       }
 
       if (isSignedIn) {

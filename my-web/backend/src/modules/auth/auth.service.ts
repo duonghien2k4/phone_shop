@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../database/prisma.service';
+import { getEffectiveRole } from '../../common/constants/admin.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -71,7 +72,8 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản của bạn đã bị khóa');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const role = getEffectiveRole(user.email, user.role);
+    const payload = { sub: user.id, email: user.email, role };
     
     // Generate Access Token
     const accessToken = this.jwtService.sign(payload, {
@@ -88,7 +90,10 @@ export class AuthService {
     // Save Refresh Token in Database
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken },
+      data: {
+        refreshToken,
+        ...(role !== user.role ? { role: 'CUSTOMER' } : {}),
+      },
     });
 
     return {
@@ -97,7 +102,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role,
         fullName: user.profile?.fullName,
         avatarUrl: user.profile?.avatarUrl,
       },
@@ -118,7 +123,14 @@ export class AuthService {
         throw new UnauthorizedException('Phiên làm việc không hợp lệ');
       }
 
-      const newPayload = { sub: user.id, email: user.email, role: user.role };
+      const role = getEffectiveRole(user.email, user.role);
+      if (role !== user.role) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'CUSTOMER', refreshToken: null },
+        });
+      }
+      const newPayload = { sub: user.id, email: user.email, role };
       const accessToken = this.jwtService.sign(newPayload, {
         secret: this.configService.get<string>('jwt.accessSecret'),
         expiresIn: this.configService.get<string>('jwt.accessExpiresIn') as any,
@@ -150,7 +162,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: getEffectiveRole(user.email, user.role),
       fullName: user.profile?.fullName,
       avatarUrl: user.profile?.avatarUrl,
     };

@@ -38,6 +38,15 @@ export class ProductsController {
     return this.productsService.getProductReviews(slug);
   }
 
+  @Get(':slug/can-review')
+  @UseGuards(ClerkAuthGuard)
+  canReview(
+    @Param('slug') slug: string,
+    @GetUser() user: { sub: number },
+  ) {
+    return this.productsService.canUserReview(slug, user.sub);
+  }
+
   @Post(':slug/reviews')
   @UseGuards(ClerkAuthGuard)
   submitReview(

@@ -9,12 +9,26 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminService } from './admin.service';
+import { CloudinaryUploadService } from './cloudinary-upload.service';
+import type { UploadedImageFile } from './cloudinary-upload.service';
 
+@UseGuards(ClerkAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly cloudinaryUploadService: CloudinaryUploadService,
+  ) {}
 
   // A. TỔNG QUAN - Dashboard
   @Get('dashboard')
@@ -24,6 +38,26 @@ export class AdminController {
 
   // B. KINH DOANH
   // 1. Sản phẩm & Biến thể
+  @Post('products/images/upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_request, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          callback(new BadRequestException('Chỉ chấp nhận tệp hình ảnh'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  uploadProductImage(@UploadedFile() file?: UploadedImageFile) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn ảnh để tải lên');
+    }
+    return this.cloudinaryUploadService.uploadProductImage(file);
+  }
+
   @Get('products')
   getProducts(
     @Query('page') page = '1',
@@ -259,4 +293,3 @@ export class AdminController {
     return this.adminService.getAiFeedbacks(+page, +limit);
   }
 }
-

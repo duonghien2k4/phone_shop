@@ -95,6 +95,7 @@ let AdminService = class AdminService {
                 include: {
                     brand: true,
                     category: true,
+                    images: { orderBy: { sortOrder: 'asc' } },
                     variants: {
                         include: { inventory: true },
                     },
@@ -131,6 +132,14 @@ let AdminService = class AdminService {
                 isFeatured: data.isFeatured ?? false,
                 isActive: data.isActive ?? true,
                 specs: data.specs || {},
+                images: data.images?.length
+                    ? {
+                        create: data.images.map((url, index) => ({
+                            url,
+                            sortOrder: index,
+                        })),
+                    }
+                    : undefined,
                 variants: {
                     create: (data.variants || [
                         { storage: '128GB', color: 'Tiêu chuẩn', price: data.salePrice || data.basePrice },
@@ -154,6 +163,7 @@ let AdminService = class AdminService {
             include: {
                 brand: true,
                 category: true,
+                images: { orderBy: { sortOrder: 'asc' } },
                 variants: { include: { inventory: true } },
             },
         });
@@ -182,12 +192,22 @@ let AdminService = class AdminService {
             updateData.isFeatured = data.isFeatured;
         if (data.isActive !== undefined)
             updateData.isActive = data.isActive;
+        if (data.images !== undefined) {
+            updateData.images = {
+                deleteMany: {},
+                create: data.images.map((url, index) => ({
+                    url,
+                    sortOrder: index,
+                })),
+            };
+        }
         return this.prisma.product.update({
             where: { id },
             data: updateData,
             include: {
                 brand: true,
                 category: true,
+                images: { orderBy: { sortOrder: 'asc' } },
                 variants: { include: { inventory: true } },
             },
         });

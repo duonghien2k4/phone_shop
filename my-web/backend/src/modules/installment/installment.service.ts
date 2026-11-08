@@ -1,9 +1,20 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  createHmac,
+  randomBytes,
+  randomInt,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import {
   CancelApplicationDto,
@@ -12,6 +23,7 @@ import {
   RecordDecisionDto,
   RequestInfoDto,
   ResubmitInstallmentDto,
+  VerifyInstallmentOtpDto,
 } from './dto/installment-application.dto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,11 +31,190 @@ import * as path from 'path';
 @Injectable()
 export class InstallmentService {
   private readonly uploadDir = path.join(process.cwd(), 'uploads', 'installment');
+  private readonly otpHashKey = randomBytes(32);
+  private readonly otpChallenges = new Map<
+    string,
+    {
+      email: string;
+      codeHash: string;
+      expiresAt: number;
+      attempts: number;
+      verifiedAt: number | null;
+      consumedAt: number | null;
+    }
+  >();
+  private readonly latestOtpByEmail = new Map<
+    string,
+    { sentAt: number; challengeId: string }
+  >();
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
+  }
+
+  async sendOtp(email: string): Promise<{
+    challengeId: string;
+    expiresInSeconds: number;
+    resendAfterSeconds: number;
+  }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const now = Date.now();
+    this.pruneOtpChallenges(now);
+
+    const previous = this.latestOtpByEmail.get(normalizedEmail);
+    if (previous && now - previous.sentAt < 60_000) {
+      throw new HttpException(
+        'Vui lòng đợi 60 giây trước khi gửi lại mã OTP',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const serviceId = this.configService.get<string>('emailjs.serviceId');
+    const templateId = this.configService.get<string>('emailjs.templateId');
+    const publicKey = this.configService.get<string>('emailjs.publicKey');
+    const privateKey = this.configService.get<string>('emailjs.privateKey');
+    if (!serviceId || !templateId || !publicKey || !privateKey) {
+      throw new ServiceUnavailableException(
+        'Chưa cấu hình EmailJS. Vui lòng thiết lập EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY và EMAILJS_PRIVATE_KEY.',
+      );
+    }
+
+    const code = String(randomInt(100_000, 1_000_000));
+    const challengeId = randomUUID();
+    const expiresAt = now + 5 * 60_000;
+
+    try {
+      const response = await fetch(
+        'https://api.emailjs.com/api/v1.0/email/send',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10_000),
+          body: JSON.stringify({
+            service_id: serviceId,
+            template_id: templateId,
+            user_id: publicKey,
+            accessToken: privateKey,
+            template_params: {
+              email: normalizedEmail,
+              passcode: code,
+              expiry_minutes: 5,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const providerMessage = (await response.text())
+          .replaceAll(privateKey, '[redacted]')
+          .replaceAll(publicKey, '[redacted]')
+          .replace(/[\r\n\t]+/g, ' ')
+          .slice(0, 500);
+        throw new ServiceUnavailableException(
+          `EmailJS từ chối gửi email OTP (HTTP ${response.status})${
+            providerMessage ? `: ${providerMessage}` : ''
+          }`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        throw error;
+      }
+      throw new ServiceUnavailableException(
+        'Không kết nối được EmailJS để gửi OTP. Vui lòng thử lại sau.',
+      );
+    }
+
+    if (previous) {
+      this.otpChallenges.delete(previous.challengeId);
+    }
+    this.otpChallenges.set(challengeId, {
+      email: normalizedEmail,
+      codeHash: this.hashOtp(challengeId, code),
+      expiresAt,
+      attempts: 0,
+      verifiedAt: null,
+      consumedAt: null,
+    });
+    this.latestOtpByEmail.set(normalizedEmail, { sentAt: now, challengeId });
+
+    return { challengeId, expiresInSeconds: 300, resendAfterSeconds: 60 };
+  }
+
+  verifyOtp(dto: VerifyInstallmentOtpDto): { verified: true } {
+    const email = dto.email.trim().toLowerCase();
+    const challenge = this.otpChallenges.get(dto.challengeId);
+    if (!challenge || challenge.email !== email || challenge.consumedAt) {
+      throw new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
+    }
+    if (challenge.expiresAt <= Date.now()) {
+      this.otpChallenges.delete(dto.challengeId);
+      throw new BadRequestException('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới');
+    }
+    if (challenge.attempts >= 5) {
+      this.otpChallenges.delete(dto.challengeId);
+      throw new HttpException(
+        'Bạn đã nhập sai OTP quá số lần cho phép',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    challenge.attempts += 1;
+    const expectedHash = Buffer.from(challenge.codeHash, 'hex');
+    const providedHash = Buffer.from(this.hashOtp(dto.challengeId, dto.code), 'hex');
+    if (!timingSafeEqual(expectedHash, providedHash)) {
+      throw new BadRequestException('Mã OTP không chính xác');
+    }
+
+    challenge.verifiedAt = Date.now();
+    return { verified: true };
+  }
+
+  private hashOtp(challengeId: string, code: string): string {
+    return createHmac('sha256', this.otpHashKey)
+      .update(`${challengeId}:${code}`)
+      .digest('hex');
+  }
+
+  private pruneOtpChallenges(now: number): void {
+    for (const [challengeId, challenge] of this.otpChallenges) {
+      if (challenge.expiresAt <= now || challenge.consumedAt) {
+        this.otpChallenges.delete(challengeId);
+      }
+    }
+    for (const [email, latest] of this.latestOtpByEmail) {
+      if (now - latest.sentAt >= 60_000) {
+        this.latestOtpByEmail.delete(email);
+      }
+    }
+  }
+
+  private reserveVerifiedOtp(dto: CreateInstallmentApplicationDto) {
+    const challenge = this.assertVerifiedOtp(dto);
+    challenge.consumedAt = Date.now();
+    return challenge;
+  }
+
+  private assertVerifiedOtp(dto: CreateInstallmentApplicationDto) {
+    const challenge = this.otpChallenges.get(dto.otpChallengeId);
+    if (
+      !challenge ||
+      challenge.email !== dto.email.trim().toLowerCase() ||
+      !challenge.verifiedAt ||
+      challenge.expiresAt <= Date.now() ||
+      challenge.consumedAt
+    ) {
+      throw new BadRequestException(
+        'Vui lòng xác thực OTP qua email trước khi gửi hồ sơ',
+      );
+    }
+
+    return challenge;
   }
 
   // ----------------------------------------------------
@@ -100,6 +291,7 @@ export class InstallmentService {
     if (!partner) {
       throw new NotFoundException(`Đối tác tài chính không hợp lệ: ${dto.financePartnerId}`);
     }
+    this.assertVerifiedOtp(dto);
 
     // Process base64 uploads if passed directly as base64 string
     let frontUrl = dto.idCardFrontUrl;
@@ -116,66 +308,74 @@ export class InstallmentService {
       sigUrl = await this.saveBase64File(sigUrl, 'signature');
     }
 
+    const otpChallenge = this.reserveVerifiedOtp(dto);
     const applicationCode = `INS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    return this.prisma.$transaction(async (tx) => {
-      const app = await tx.installmentApplication.create({
-        data: {
-          applicationCode,
-          userId: userId || null,
-          financePartnerId: dto.financePartnerId,
-          orderId: dto.orderId || null,
-          productId: dto.productId || null,
-          productVariantId: dto.productVariantId || null,
-          productName: dto.productName,
-          productPrice: dto.productPrice,
-          prepaidPercent: dto.prepaidPercent,
-          downPayment: dto.downPayment,
-          financedAmount: dto.financedAmount,
-          termMonths: dto.termMonths,
-          monthlyPayment: dto.monthlyPayment,
-          status: 'SUBMITTED',
-          isSimulated: true,
+    try {
+      const application = await this.prisma.$transaction(async (tx) => {
+        const app = await tx.installmentApplication.create({
+          data: {
+            applicationCode,
+            userId: userId || null,
+            financePartnerId: dto.financePartnerId,
+            orderId: dto.orderId || null,
+            productId: dto.productId || null,
+            productVariantId: dto.productVariantId || null,
+            productName: dto.productName,
+            productPrice: dto.productPrice,
+            prepaidPercent: dto.prepaidPercent,
+            downPayment: dto.downPayment,
+            financedAmount: dto.financedAmount,
+            termMonths: dto.termMonths,
+            monthlyPayment: dto.monthlyPayment,
+            status: 'SUBMITTED',
+            isSimulated: true,
 
-          fullName: dto.fullName,
-          citizenId: dto.citizenId,
-          dateOfBirth: dto.dateOfBirth,
-          gender: dto.gender,
-          phoneNumber: dto.phoneNumber,
-          email: dto.email,
-          permanentAddress: dto.permanentAddress,
-          currentAddress: dto.currentAddress,
-          jobTitle: dto.jobTitle,
-          monthlyIncome: dto.monthlyIncome,
-          companyName: dto.companyName,
-          refRelation: dto.refRelation,
-          refName: dto.refName,
-          refPhone: dto.refPhone,
-          deliveryMethod: dto.deliveryMethod || 'shop',
-          pickupStoreId: dto.pickupStoreId,
-          idCardFrontUrl: frontUrl,
-          idCardBackUrl: backUrl,
-          signatureUrl: sigUrl,
-        },
-        include: {
-          financePartner: true,
-        },
+            fullName: dto.fullName,
+            citizenId: dto.citizenId,
+            dateOfBirth: dto.dateOfBirth,
+            gender: dto.gender,
+            phoneNumber: dto.phoneNumber,
+            email: dto.email,
+            permanentAddress: dto.permanentAddress,
+            currentAddress: dto.currentAddress,
+            jobTitle: dto.jobTitle,
+            monthlyIncome: dto.monthlyIncome,
+            companyName: dto.companyName,
+            refRelation: dto.refRelation,
+            refName: dto.refName,
+            refPhone: dto.refPhone,
+            deliveryMethod: dto.deliveryMethod || 'shop',
+            pickupStoreId: dto.pickupStoreId,
+            idCardFrontUrl: frontUrl,
+            idCardBackUrl: backUrl,
+            signatureUrl: sigUrl,
+          },
+          include: {
+            financePartner: true,
+          },
+        });
+
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId: app.id,
+            fromStatus: null,
+            toStatus: 'SUBMITTED',
+            action: 'CUSTOMER_SUBMIT',
+            reason: 'Khách hàng hoàn tất và gửi hồ sơ đăng ký trả góp',
+            actorId: userId || null,
+            actorType: 'CUSTOMER',
+          },
+        });
+
+        return app;
       });
-
-      await tx.applicationStatusHistory.create({
-        data: {
-          applicationId: app.id,
-          fromStatus: null,
-          toStatus: 'SUBMITTED',
-          action: 'CUSTOMER_SUBMIT',
-          reason: 'Khách hàng hoàn tất và gửi hồ sơ đăng ký trả góp',
-          actorId: userId || null,
-          actorType: 'CUSTOMER',
-        },
-      });
-
-      return app;
-    });
+      this.otpChallenges.delete(dto.otpChallengeId);
+      return application;
+    } catch (error) {
+      otpChallenge.consumedAt = null;
+      throw error;
+    }
   }
 
   async getMyApplications(userId: number) {

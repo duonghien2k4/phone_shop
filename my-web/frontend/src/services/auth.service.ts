@@ -63,30 +63,10 @@ const buildDemoUser = (email: string, fullName?: string, role: AuthUser['role'] 
 
 export const authService = {
   login: async (credentials: LoginDto) => {
-    try {
-      return await api.post<{ accessToken: string; user: AuthUser }>('/auth/login', credentials, {
-        skipAuth: true,
-      });
-    } catch {
-      const email = (credentials.email ?? '').trim().toLowerCase();
-      const password = credentials.password ?? '';
-
-      if (!email || !password) {
-        throw new Error('Email và mật khẩu không được để trống');
-      }
-
-      const user = buildDemoUser(
-        email,
-        email.split('@')[0].replace(/[._-]/g, ' '),
-        email.toLowerCase().includes('admin') ? 'ADMIN' : 'CUSTOMER',
-      );
-
-      setDemoUser(user);
-      return {
-        accessToken: 'demo-access-token',
-        user,
-      };
-    }
+    clearDemoUser();
+    return api.post<{ accessToken: string; user: AuthUser }>('/auth/login', credentials, {
+      skipAuth: true,
+    });
   },
 
   register: async (data: RegisterDto) => {
@@ -117,6 +97,10 @@ export const authService = {
   getProfile: async () => {
     const demoUser = getDemoUser();
     if (demoUser) {
+      if (demoUser.role === 'ADMIN') {
+        clearDemoUser();
+        return null;
+      }
       return demoUser;
     }
 

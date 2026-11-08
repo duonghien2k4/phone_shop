@@ -1,9 +1,26 @@
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
-import { CancelApplicationDto, CreateInstallmentApplicationDto, QueryInstallmentDto, RecordDecisionDto, RequestInfoDto, ResubmitInstallmentDto } from './dto/installment-application.dto';
+import { CancelApplicationDto, CreateInstallmentApplicationDto, QueryInstallmentDto, RecordDecisionDto, RequestInfoDto, ResubmitInstallmentDto, VerifyInstallmentOtpDto } from './dto/installment-application.dto';
 export declare class InstallmentService {
     private readonly prisma;
+    private readonly configService;
     private readonly uploadDir;
-    constructor(prisma: PrismaService);
+    private readonly otpHashKey;
+    private readonly otpChallenges;
+    private readonly latestOtpByEmail;
+    constructor(prisma: PrismaService, configService: ConfigService);
+    sendOtp(email: string): Promise<{
+        challengeId: string;
+        expiresInSeconds: number;
+        resendAfterSeconds: number;
+    }>;
+    verifyOtp(dto: VerifyInstallmentOtpDto): {
+        verified: true;
+    };
+    private hashOtp;
+    private pruneOtpChallenges;
+    private reserveVerifiedOtp;
+    private assertVerifiedOtp;
     getPartners(): Promise<{
         id: string;
         name: string;

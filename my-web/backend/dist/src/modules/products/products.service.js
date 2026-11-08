@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../database/prisma.service");
 const productInclude = {
     brand: true,
@@ -27,6 +28,12 @@ const reviewInclude = {
         },
     },
 };
+const REVIEWABLE_ORDER_STATUSES = [
+    client_1.OrderStatus.PENDING,
+    client_1.OrderStatus.CONFIRMED,
+    client_1.OrderStatus.SHIPPING,
+    client_1.OrderStatus.DELIVERED,
+];
 let ProductsService = class ProductsService {
     prisma;
     constructor(prisma) {
@@ -141,6 +148,31 @@ let ProductsService = class ProductsService {
             : 0;
         return { reviews, total, avgRating: Math.round(avgRating * 10) / 10 };
     }
+    async canUserReview(slug, userId) {
+        const product = await this.prisma.product.findFirst({
+            where: { slug, isActive: true },
+            select: { id: true },
+        });
+        if (!product) {
+            throw new common_1.NotFoundException('Không tìm thấy sản phẩm');
+        }
+        const hasPurchased = await this.prisma.order.findFirst({
+            where: {
+                userId,
+                status: { in: REVIEWABLE_ORDER_STATUSES },
+                items: {
+                    some: { productId: product.id },
+                },
+            },
+            select: { id: true },
+        });
+        return {
+            canReview: Boolean(hasPurchased),
+            reason: hasPurchased
+                ? null
+                : 'Bạn chỉ có thể đánh giá sau khi đã mua sản phẩm này tại Sóc Mobile.',
+        };
+    }
     async createOrUpdateReview(slug, userId, data) {
         if (data.rating < 1 || data.rating > 5) {
             throw new common_1.BadRequestException('Điểm đánh giá phải từ 1 đến 5');
@@ -154,6 +186,19 @@ let ProductsService = class ProductsService {
         });
         if (!product) {
             throw new common_1.NotFoundException('Không tìm thấy sản phẩm');
+        }
+        const hasPurchased = await this.prisma.order.findFirst({
+            where: {
+                userId,
+                status: { in: REVIEWABLE_ORDER_STATUSES },
+                items: {
+                    some: { productId: product.id },
+                },
+            },
+            select: { id: true },
+        });
+        if (!hasPurchased) {
+            throw new common_1.BadRequestException('Bạn chỉ có thể gửi đánh giá sau khi đã mua sản phẩm này tại Sóc Mobile.');
         }
         const review = await this.prisma.review.upsert({
             where: { userId_productId: { userId, productId: product.id } },

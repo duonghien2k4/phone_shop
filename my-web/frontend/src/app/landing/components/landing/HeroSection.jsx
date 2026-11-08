@@ -30,10 +30,7 @@ export default function HeroSection({ product }) {
         <p className="hero-tagline fade-in-up delay-2">{product.tagline}</p>
         <p className="hero-description fade-in-up delay-3">{product.description}</p>
 
-        <div className="hero-ctas fade-in-up delay-4">
-          <Link className="btn btn-primary" href="/shop">Explore {product.name}</Link>
-          <Link className="btn btn-ghost" href="/shop">Buy now</Link>
-        </div>
+
       </div>
 
       <div

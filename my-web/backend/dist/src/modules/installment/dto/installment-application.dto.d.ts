@@ -1,4 +1,13 @@
+export declare class RequestInstallmentOtpDto {
+    email: string;
+}
+export declare class VerifyInstallmentOtpDto {
+    challengeId: string;
+    email: string;
+    code: string;
+}
 export declare class CreateInstallmentApplicationDto {
+    otpChallengeId: string;
     financePartnerId: string;
     productId?: number;
     productVariantId?: number;
@@ -14,7 +23,7 @@ export declare class CreateInstallmentApplicationDto {
     dateOfBirth?: string;
     gender?: string;
     phoneNumber: string;
-    email?: string;
+    email: string;
     permanentAddress?: string;
     currentAddress?: string;
     jobTitle?: string;

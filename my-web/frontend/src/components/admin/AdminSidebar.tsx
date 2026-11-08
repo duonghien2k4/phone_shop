@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import {
   LayoutDashboard,
   Package,
@@ -16,7 +15,6 @@ import {
   Repeat,
   ShieldAlert,
   Bot,
-  Store,
   LogOut,
   ChevronRight,
 } from 'lucide-react';
@@ -162,14 +160,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Footer link to main store & logout */}
       <div className="p-3 border-t border-slate-800 bg-slate-950/30 space-y-1">
-        <Link
-          href="/shop"
-          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
-        >
-          <Store size={15} />
-          <span>Xem cửa hàng Sóc Mobile</span>
-          <ChevronRight size={14} className="ml-auto text-slate-500" />
-        </Link>
         {onLogout && (
           <button
             type="button"
@@ -177,7 +167,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition text-left"
           >
             <LogOut size={15} />
-            <span>Đăng xuất tài trị</span>
+            <span>Đăng xuất tài khoản</span>
           </button>
         )}
       </div>

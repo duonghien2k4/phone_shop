@@ -9,9 +9,36 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QueryInstallmentDto = exports.CancelApplicationDto = exports.RecordDecisionDto = exports.RequestInfoDto = exports.ResubmitInstallmentDto = exports.CreateInstallmentApplicationDto = void 0;
+exports.QueryInstallmentDto = exports.CancelApplicationDto = exports.RecordDecisionDto = exports.RequestInfoDto = exports.ResubmitInstallmentDto = exports.CreateInstallmentApplicationDto = exports.VerifyInstallmentOtpDto = exports.RequestInstallmentOtpDto = void 0;
 const class_validator_1 = require("class-validator");
+class RequestInstallmentOtpDto {
+    email;
+}
+exports.RequestInstallmentOtpDto = RequestInstallmentOtpDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], RequestInstallmentOtpDto.prototype, "email", void 0);
+class VerifyInstallmentOtpDto {
+    challengeId;
+    email;
+    code;
+}
+exports.VerifyInstallmentOtpDto = VerifyInstallmentOtpDto;
+__decorate([
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], VerifyInstallmentOtpDto.prototype, "challengeId", void 0);
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], VerifyInstallmentOtpDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.Matches)(/^\d{6}$/),
+    __metadata("design:type", String)
+], VerifyInstallmentOtpDto.prototype, "code", void 0);
 class CreateInstallmentApplicationDto {
+    otpChallengeId;
     financePartnerId;
     productId;
     productVariantId;
@@ -44,6 +71,10 @@ class CreateInstallmentApplicationDto {
     orderId;
 }
 exports.CreateInstallmentApplicationDto = CreateInstallmentApplicationDto;
+__decorate([
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateInstallmentApplicationDto.prototype, "otpChallengeId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -120,7 +151,6 @@ __decorate([
     __metadata("design:type", String)
 ], CreateInstallmentApplicationDto.prototype, "phoneNumber", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)
 ], CreateInstallmentApplicationDto.prototype, "email", void 0);

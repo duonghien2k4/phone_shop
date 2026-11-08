@@ -29,64 +29,70 @@ export const adminService = {
     if (params.search) q.set('search', params.search);
     if (params.categoryId) q.set('categoryId', String(params.categoryId));
     if (params.brandId) q.set('brandId', String(params.brandId));
-    return api.get<any>(`/admin/products?${q.toString()}`, { skipAuth: true });
+    return api.get<any>(`/admin/products?${q.toString()}`);
   },
 
   createProduct: async (data: any) => {
-    return api.post<any>('/admin/products', data, { skipAuth: true });
+    return api.post<any>('/admin/products', data);
+  },
+
+  uploadProductImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/admin/products/images/upload', formData);
   },
 
   updateProduct: async (id: number, data: any) => {
-    return api.patch<any>(`/admin/products/${id}`, data, { skipAuth: true });
+    return api.patch<any>(`/admin/products/${id}`, data);
   },
 
   deleteProduct: async (id: number) => {
-    return api.delete<any>(`/admin/products/${id}`, { skipAuth: true });
+    return api.delete<any>(`/admin/products/${id}`);
   },
 
   createVariant: async (productId: number, data: any) => {
-    return api.post<any>(`/admin/products/${productId}/variants`, data, { skipAuth: true });
+    return api.post<any>(`/admin/products/${productId}/variants`, data);
   },
 
   updateVariant: async (id: number, data: any) => {
-    return api.patch<any>(`/admin/variants/${id}`, data, { skipAuth: true });
+    return api.patch<any>(`/admin/variants/${id}`, data);
   },
 
   deleteVariant: async (id: number) => {
-    return api.delete<any>(`/admin/variants/${id}`, { skipAuth: true });
+    return api.delete<any>(`/admin/variants/${id}`);
   },
 
   // 2. Thương hiệu & Danh mục
   getBrands: async () => {
-    return api.get<any[]>('/admin/brands', { skipAuth: true });
+    return api.get<any[]>('/admin/brands');
   },
 
   createBrand: async (data: any) => {
-    return api.post<any>('/admin/brands', data, { skipAuth: true });
+    return api.post<any>('/admin/brands', data);
   },
 
   updateBrand: async (id: number, data: any) => {
-    return api.patch<any>(`/admin/brands/${id}`, data, { skipAuth: true });
+    return api.patch<any>(`/admin/brands/${id}`, data);
   },
 
   deleteBrand: async (id: number) => {
-    return api.delete<any>(`/admin/brands/${id}`, { skipAuth: true });
+    return api.delete<any>(`/admin/brands/${id}`);
   },
 
   getCategories: async () => {
-    return api.get<any[]>('/admin/categories', { skipAuth: true });
+    return api.get<any[]>('/admin/categories');
   },
 
   createCategory: async (data: any) => {
-    return api.post<any>('/admin/categories', data, { skipAuth: true });
+    return api.post<any>('/admin/categories', data);
   },
 
   updateCategory: async (id: number, data: any) => {
-    return api.patch<any>(`/admin/categories/${id}`, data, { skipAuth: true });
+    return api.patch<any>(`/admin/categories/${id}`, data);
   },
 
   deleteCategory: async (id: number) => {
-    return api.delete<any>(`/admin/categories/${id}`, { skipAuth: true });
+    return api.delete<any>(`/admin/categories/${id}`);
   },
 
   // 3. Kho hàng & Tồn kho
@@ -295,4 +301,3 @@ export const adminService = {
     return api.get<any>(`/admin/ai/feedbacks?${q.toString()}`, { skipAuth: true });
   },
 };
-

@@ -20,6 +20,7 @@ export interface CartItem {
   imageUrl: string | null;
   price: number;
   quantity: number;
+  stock?: number;
 }
 
 interface CartState {

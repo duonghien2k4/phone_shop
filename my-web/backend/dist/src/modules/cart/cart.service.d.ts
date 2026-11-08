@@ -9,6 +9,7 @@ export interface CartItemResponse {
     imageUrl: string | null;
     price: number;
     quantity: number;
+    stock?: number;
 }
 export declare class CartService {
     private readonly prisma;

@@ -21,7 +21,7 @@ export declare class AuthService {
         user: {
             id: number;
             email: string;
-            role: import("@prisma/client").$Enums.UserRole;
+            role: string;
             fullName: string | null | undefined;
             avatarUrl: string | null | undefined;
         };
@@ -33,7 +33,7 @@ export declare class AuthService {
     getProfile(userId: number): Promise<{
         id: number;
         email: string;
-        role: import("@prisma/client").$Enums.UserRole;
+        role: string;
         fullName: string | null | undefined;
         avatarUrl: string | null | undefined;
     }>;

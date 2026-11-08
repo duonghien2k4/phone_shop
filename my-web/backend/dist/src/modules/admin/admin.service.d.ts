@@ -103,6 +103,14 @@ export declare class AdminService {
                 oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
                 imageUrl: string | null;
             })[];
+            images: {
+                url: string;
+                id: number;
+                createdAt: Date;
+                productId: number;
+                altText: string | null;
+                sortOrder: number;
+            }[];
         } & {
             id: number;
             name: string;
@@ -178,6 +186,14 @@ export declare class AdminService {
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
+        images: {
+            url: string;
+            id: number;
+            createdAt: Date;
+            productId: number;
+            altText: string | null;
+            sortOrder: number;
+        }[];
     } & {
         id: number;
         name: string;
@@ -246,6 +262,14 @@ export declare class AdminService {
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
+        images: {
+            url: string;
+            id: number;
+            createdAt: Date;
+            productId: number;
+            altText: string | null;
+            sortOrder: number;
+        }[];
     } & {
         id: number;
         name: string;

@@ -6958,6 +6958,7 @@ html[data-theme='light'] .info-page-hero *,
 .info-page-hero * {
   color: #ffffff !important;
 }
+
 }
 
 /* ================================================================
@@ -7006,4 +7007,44 @@ html[data-theme='light'] .info-page-hero *,
 .info-page-hero,
 .info-page-hero * {
   color: #ffffff !important;
+}
+
+.header-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-auth-actions .header-login-btn {
+  box-sizing: border-box;
+  width: 128px;
+  min-height: 40px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #d5deea;
+  border-radius: 12px;
+  color: #172033 !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+}
+
+.header-auth-actions .header-login-btn * {
+  color: #172033 !important;
+}
+
+.header-auth-actions .header-signup-btn {
+  background: #ffffff;
+  border-color: #d5deea;
+}
+
+.header-auth-actions .header-login-btn:hover,
+.header-auth-actions .header-login-btn:active {
+  background: #f2f6fc;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.16);
+}
+
+.header-auth-actions .header-login-btn:focus-visible {
+  outline: 3px solid #173fe5;
+  outline-offset: 2px;
 }

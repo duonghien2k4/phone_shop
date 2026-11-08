@@ -75,7 +75,7 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api');
 
   await app.listen(port);
-  console.log(`🚀 PHONE_SHOP Backend running on: http://localhost:${port}/api`);
+  console.log(`PHONE_SHOP Backend running on: http://localhost:${port}/api`);
 }
 
 void bootstrap();

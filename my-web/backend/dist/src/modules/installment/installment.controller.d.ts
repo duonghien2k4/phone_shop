@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { CancelApplicationDto, CreateInstallmentApplicationDto, ResubmitInstallmentDto } from './dto/installment-application.dto';
+import { CancelApplicationDto, CreateInstallmentApplicationDto, RequestInstallmentOtpDto, ResubmitInstallmentDto, VerifyInstallmentOtpDto } from './dto/installment-application.dto';
 import { InstallmentService } from './installment.service';
 export declare class InstallmentController {
     private readonly installmentService;
@@ -105,6 +105,14 @@ export declare class InstallmentController {
     }): Promise<{
         url: string;
     }>;
+    sendOtp(dto: RequestInstallmentOtpDto): Promise<{
+        challengeId: string;
+        expiresInSeconds: number;
+        resendAfterSeconds: number;
+    }>;
+    verifyOtp(dto: VerifyInstallmentOtpDto): {
+        verified: true;
+    };
     createApplication(dto: CreateInstallmentApplicationDto, req: Request): Promise<{
         financePartner: {
             id: string;

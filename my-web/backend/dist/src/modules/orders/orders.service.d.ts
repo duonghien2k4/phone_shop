@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 export interface OrderItemPayload {
@@ -12,7 +14,9 @@ export interface OrderItemPayload {
 }
 export declare class OrdersService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly configService;
+    private readonly logger;
+    constructor(prisma: PrismaService, configService: ConfigService);
     findMyOrders(userId: number): Promise<({
         items: {
             id: number;
@@ -21,10 +25,10 @@ export declare class OrdersService {
             color: string;
             storage: string;
             imageUrl: string | null;
-            total: import("@prisma/client-runtime-utils").Decimal;
+            total: Prisma.Decimal;
             productName: string;
             quantity: number;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            unitPrice: Prisma.Decimal;
             variantId: number;
             orderId: number;
         }[];
@@ -34,9 +38,9 @@ export declare class OrdersService {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.PaymentStatus;
             method: import("@prisma/client").$Enums.PaymentMethod;
-            amount: import("@prisma/client-runtime-utils").Decimal;
+            amount: Prisma.Decimal;
             transactionId: string | null;
-            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
+            gatewayData: Prisma.JsonValue | null;
             paidAt: Date | null;
             orderId: number;
         } | null;
@@ -45,12 +49,12 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
-        discount: import("@prisma/client-runtime-utils").Decimal;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        shippingFee: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        discount: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
+        shippingFee: Prisma.Decimal;
+        total: Prisma.Decimal;
         voucherCode: string | null;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
+        shippingAddress: Prisma.JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
@@ -64,10 +68,10 @@ export declare class OrdersService {
             color: string;
             storage: string;
             imageUrl: string | null;
-            total: import("@prisma/client-runtime-utils").Decimal;
+            total: Prisma.Decimal;
             productName: string;
             quantity: number;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            unitPrice: Prisma.Decimal;
             variantId: number;
             orderId: number;
         }[];
@@ -77,9 +81,9 @@ export declare class OrdersService {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.PaymentStatus;
             method: import("@prisma/client").$Enums.PaymentMethod;
-            amount: import("@prisma/client-runtime-utils").Decimal;
+            amount: Prisma.Decimal;
             transactionId: string | null;
-            gatewayData: import("@prisma/client/runtime/client").JsonValue | null;
+            gatewayData: Prisma.JsonValue | null;
             paidAt: Date | null;
             orderId: number;
         } | null;
@@ -88,12 +92,12 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
-        discount: import("@prisma/client-runtime-utils").Decimal;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        shippingFee: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        discount: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
+        shippingFee: Prisma.Decimal;
+        total: Prisma.Decimal;
         voucherCode: string | null;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
+        shippingAddress: Prisma.JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
@@ -107,10 +111,10 @@ export declare class OrdersService {
             color: string;
             storage: string;
             imageUrl: string | null;
-            total: import("@prisma/client-runtime-utils").Decimal;
+            total: Prisma.Decimal;
             productName: string;
             quantity: number;
-            unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            unitPrice: Prisma.Decimal;
             variantId: number;
             orderId: number;
         }[];
@@ -119,15 +123,16 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
-        discount: import("@prisma/client-runtime-utils").Decimal;
-        subtotal: import("@prisma/client-runtime-utils").Decimal;
-        shippingFee: import("@prisma/client-runtime-utils").Decimal;
-        total: import("@prisma/client-runtime-utils").Decimal;
+        discount: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
+        shippingFee: Prisma.Decimal;
+        total: Prisma.Decimal;
         voucherCode: string | null;
-        shippingAddress: import("@prisma/client/runtime/client").JsonValue;
+        shippingAddress: Prisma.JsonValue;
         note: string | null;
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
         userId: number;
     }>;
+    private sendOrderConfirmationEmail;
 }

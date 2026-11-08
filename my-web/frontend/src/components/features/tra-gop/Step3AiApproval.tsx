@@ -30,8 +30,6 @@ export default function Step3AiApproval() {
     prepaidPercent,
     tenureMonths,
     kycInfo,
-    otp,
-    setOtpDigit,
     getCalculation,
     getSelectedPartner,
     setCreatedApplication,
@@ -46,10 +44,11 @@ export default function Step3AiApproval() {
   // State
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(105);
-  const [resendSeconds, setResendSeconds] = useState(45);
-
-  const input5Ref = useRef<HTMLInputElement>(null);
-  const input6Ref = useRef<HTMLInputElement>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [otpDigits, setOtpDigits] = useState(Array<string>(6).fill(''));
+  const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   // Timers
   useEffect(() => {
@@ -66,25 +65,71 @@ export default function Step3AiApproval() {
     return `Còn ${String(mins).padStart(2, '0')} phút ${String(secs).padStart(2, '0')} giây`;
   };
 
-  const handleResendOtp = () => {
-    setResendSeconds(60);
-    toast.success('Mã xác thực OTP SMS mới đã được gửi tới số 0988 123 456!');
+  const handleSendOtp = async () => {
+    if (!kycInfo.email.trim()) {
+      toast.error('Vui lòng nhập email ở bước thông tin khách hàng trước');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const challenge = await installmentService.sendOtp(kycInfo.email);
+      setOtpChallengeId(challenge.challengeId);
+      setOtpDigits(Array<string>(6).fill(''));
+      setResendSeconds(challenge.resendAfterSeconds);
+      toast.success(`Mã OTP đã được gửi đến ${kycInfo.email}`);
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Không thể gửi mã OTP. Vui lòng thử lại',
+      );
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
-  const handleOtpInput = (index: number, val: string) => {
-    const digit = val.slice(-1);
-    setOtpDigit(index, digit);
-    if (digit && index === 4 && input6Ref.current) {
-      input6Ref.current.focus();
+  const handleOtpInput = (index: number, value: string) => {
+    const digits = value.replace(/\D/g, '');
+    const nextOtp = [...otpDigits];
+    if (!digits) {
+      nextOtp[index] = '';
+      setOtpDigits(nextOtp);
+      return;
     }
+
+    digits
+      .slice(0, 6 - index)
+      .split('')
+      .forEach((digit, offset) => {
+        nextOtp[index + offset] = digit;
+      });
+    setOtpDigits(nextOtp);
+    inputRefs.current[Math.min(index + digits.length, 5)]?.focus();
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleConfirmOtp = async () => {
+    if (!otpChallengeId) {
+      toast.error('Vui lòng gửi mã OTP đến email trước');
+      return;
+    }
+    if (otpDigits.some((digit) => !digit)) {
+      toast.error('Vui lòng nhập đầy đủ mã OTP gồm 6 số');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      await installmentService.verifyOtp(
+        otpChallengeId,
+        kycInfo.email,
+        otpDigits.join(''),
+      );
+
       const payload = {
+        otpChallengeId,
         financePartnerId: partner.id,
         productName: `${selectedDevice.name} ${selectedDevice.storage}`,
         productPrice: selectedDevice.price,
@@ -98,7 +143,7 @@ export default function Step3AiApproval() {
         dateOfBirth: kycInfo.dob,
         gender: kycInfo.gender,
         phoneNumber: kycInfo.phone,
-        email: kycInfo.email,
+        email: kycInfo.email.trim(),
         permanentAddress: kycInfo.permanentAddress,
         currentAddress: kycInfo.currentAddress,
         jobTitle: kycInfo.jobTitle,
@@ -212,7 +257,7 @@ export default function Step3AiApproval() {
                 />
               </div>
               <span className="text-xs text-[#747688] font-medium">
-                Đang tự động khởi tạo luồng giải ngân và gửi mã xác thực SMS OTP...
+                Luồng hồ sơ sẵn sàng. Gửi mã xác thực OTP đến email để tiếp tục.
               </span>
             </div>
 
@@ -320,9 +365,9 @@ export default function Step3AiApproval() {
                     Ký hợp đồng trả góp điện tử qua mã OTP
                   </h2>
                   <p className="text-xs text-[#747688]">
-                    Mã OTP gồm 6 số đã được gửi qua SMS đến số điện thoại{' '}
+                    Mã OTP gồm 6 số sẽ được gửi đến email{' '}
                     <strong className="text-[#131b2e]">
-                      {kycInfo.phone ? kycInfo.phone.slice(0, 4) + ' *** ***' : '0988 123 ***'}
+                      {kycInfo.email || 'chưa nhập email'}
                     </strong>
                   </p>
                 </div>
@@ -336,58 +381,44 @@ export default function Step3AiApproval() {
             {/* OTP Input Group */}
             <div className="my-3 flex flex-col items-center gap-4">
               <div className="flex items-center gap-2 sm:gap-3 justify-center">
-                {/* Digit 1 */}
-                <input
-                  type="text"
-                  maxLength={1}
-                  readOnly
-                  value={otp[0]}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#143de7] font-extrabold bg-[#f2f3ff] border-2 border-[#3b5bff] rounded-xl shadow-inner outline-none select-none"
-                />
-                {/* Digit 2 */}
-                <input
-                  type="text"
-                  maxLength={1}
-                  readOnly
-                  value={otp[1]}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#143de7] font-extrabold bg-[#f2f3ff] border-2 border-[#3b5bff] rounded-xl shadow-inner outline-none select-none"
-                />
-                {/* Digit 3 */}
-                <input
-                  type="text"
-                  maxLength={1}
-                  readOnly
-                  value={otp[2]}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#143de7] font-extrabold bg-[#f2f3ff] border-2 border-[#3b5bff] rounded-xl shadow-inner outline-none select-none"
-                />
-                {/* Digit 4 */}
-                <input
-                  type="text"
-                  maxLength={1}
-                  readOnly
-                  value={otp[3]}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#143de7] font-extrabold bg-[#f2f3ff] border-2 border-[#3b5bff] rounded-xl shadow-inner outline-none select-none"
-                />
-                {/* Digit 5 (Editable) */}
-                <input
-                  ref={input5Ref}
-                  type="text"
-                  maxLength={1}
-                  value={otp[4]}
-                  placeholder="•"
-                  onChange={(e) => handleOtpInput(4, e.target.value)}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#131b2e] font-extrabold bg-white border-2 border-[#143de7] ring-4 ring-[#143de7]/10 rounded-xl shadow-xs outline-none transition-all"
-                />
-                {/* Digit 6 (Editable) */}
-                <input
-                  ref={input6Ref}
-                  type="text"
-                  maxLength={1}
-                  value={otp[5]}
-                  placeholder="•"
-                  onChange={(e) => handleOtpInput(5, e.target.value)}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#131b2e] font-extrabold bg-white border-2 border-[#c4c5d9] rounded-xl shadow-xs focus:border-[#143de7] outline-none transition-all"
-                />
+                {Array.from({ length: 6 }, (_, index) => (
+                  <input
+                    key={index}
+                    ref={(element) => {
+                      inputRefs.current[index] = element;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                    maxLength={index === 0 ? 6 : 1}
+                    value={otpDigits[index]}
+                    aria-label={`Số OTP thứ ${index + 1}`}
+                    onChange={(event) =>
+                      handleOtpInput(index, event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === 'Backspace' &&
+                        !otpDigits[index] &&
+                        index > 0
+                      ) {
+                        inputRefs.current[index - 1]?.focus();
+                      }
+                    }}
+                    onPaste={(event) => {
+                      event.preventDefault();
+                      const digits = event.clipboardData
+                        .getData('text')
+                        .replace(/\D/g, '')
+                        .slice(0, 6);
+                      setOtpDigits(
+                        Array.from({ length: 6 }, (_, index) => digits[index] || ''),
+                      );
+                      inputRefs.current[Math.min(digits.length, 5)]?.focus();
+                    }}
+                    className="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl text-[#131b2e] font-extrabold bg-white border-2 border-[#c4c5d9] rounded-xl shadow-xs focus:border-[#143de7] focus:ring-4 focus:ring-[#143de7]/10 outline-none transition-all"
+                  />
+                ))}
               </div>
 
               {/* OTP Controls */}
@@ -395,19 +426,26 @@ export default function Step3AiApproval() {
                 <div className="flex items-center gap-1.5 text-[#747688]">
                   <Timer className="size-4" />
                   <span>
-                    Gửi lại mã sau:{' '}
-                    <strong className="text-[#fe6a34] font-bold">
-                      {resendSeconds}s
-                    </strong>
+                    {resendSeconds > 0
+                      ? `Có thể gửi lại sau ${resendSeconds}s`
+                      : 'Mã OTP có hiệu lực trong 5 phút'}
                   </span>
                 </div>
                 <button
                   type="button"
-                  disabled={resendSeconds > 0}
-                  onClick={handleResendOtp}
+                  disabled={
+                    isSendingOtp ||
+                    resendSeconds > 0 ||
+                    !kycInfo.email.trim()
+                  }
+                  onClick={handleSendOtp}
                   className="text-xs font-bold text-[#143de7] hover:underline disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  Gửi lại mã OTP SMS
+                  {isSendingOtp
+                    ? 'Đang gửi mã...'
+                    : otpChallengeId
+                      ? 'Gửi lại mã OTP qua email'
+                      : 'Gửi mã OTP qua email'}
                 </button>
               </div>
             </div>
@@ -451,7 +489,7 @@ export default function Step3AiApproval() {
             {/* Product Snapshot */}
             <div className="flex items-center gap-3 mb-4">
               <img
-                src={selectedDevice.image}
+                src={selectedDevice.image || '/placeholder-phone.svg'}
                 alt={selectedDevice.name}
                 className="w-16 h-16 rounded-xl object-contain bg-[#f2f3ff] p-1.5 border border-[#c4c5d9]/40 shrink-0"
               />
@@ -621,4 +659,3 @@ export default function Step3AiApproval() {
     </div>
   );
 }
-

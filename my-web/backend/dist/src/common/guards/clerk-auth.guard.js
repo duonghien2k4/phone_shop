@@ -48,6 +48,7 @@ const config_1 = require("@nestjs/config");
 const backend_1 = require("@clerk/backend");
 const jwt = __importStar(require("jsonwebtoken"));
 const prisma_service_1 = require("../../database/prisma.service");
+const admin_constants_1 = require("../constants/admin.constants");
 let ClerkAuthGuard = class ClerkAuthGuard {
     configService;
     prisma;
@@ -64,6 +65,7 @@ let ClerkAuthGuard = class ClerkAuthGuard {
             ? authorization.slice('Bearer '.length)
             : null;
         const secretKey = this.configService.get('clerk.secretKey');
+        const jwtKey = this.configService.get('clerk.jwtKey');
         const localJwtSecret = this.configService.get('jwt.accessSecret');
         if (!token) {
             throw new common_1.UnauthorizedException('Yêu cầu đăng nhập');
@@ -80,10 +82,17 @@ let ClerkAuthGuard = class ClerkAuthGuard {
                         if (user.status === 'BANNED') {
                             throw new common_1.UnauthorizedException('Tài khoản của bạn đã bị khóa');
                         }
+                        const role = (0, admin_constants_1.getEffectiveRole)(user.email, user.role);
+                        if (role !== user.role) {
+                            await this.prisma.user.update({
+                                where: { id: user.id },
+                                data: { role: 'CUSTOMER', refreshToken: null },
+                            });
+                        }
                         request.user = {
                             sub: user.id,
                             email: user.email,
-                            role: user.role,
+                            role,
                         };
                         return true;
                     }
@@ -97,10 +106,27 @@ let ClerkAuthGuard = class ClerkAuthGuard {
         }
         let clerkUserId = null;
         try {
-            const claims = (await (0, backend_1.verifyToken)(token, {
-                secretKey,
+            const verifyOptions = {
+                ...(secretKey ? { secretKey } : {}),
+                ...(jwtKey ? { jwtKey } : {}),
                 clockSkewInMs: 300000,
-            }));
+            };
+            let claims;
+            try {
+                claims = (await (0, backend_1.verifyToken)(token, verifyOptions));
+            }
+            catch (error) {
+                const reason = typeof error === 'object' && error !== null && 'reason' in error
+                    ? String(error.reason)
+                    : '';
+                if (reason !== 'jwk-kid-mismatch' || jwtKey) {
+                    throw error;
+                }
+                claims = (await (0, backend_1.verifyToken)(token, {
+                    ...verifyOptions,
+                    skipJwksCache: true,
+                }));
+            }
             clerkUserId = claims?.sub ?? null;
         }
         catch (error) {
@@ -117,7 +143,10 @@ let ClerkAuthGuard = class ClerkAuthGuard {
             }
             if (!clerkUserId) {
                 console.warn(`[ClerkAuthGuard] Token verification failed: ${reason}`);
-                throw new common_1.UnauthorizedException(`Token Clerk không hợp lệ hoặc đã hết hạn (${reason})`);
+                const message = reason === 'jwk-kid-mismatch'
+                    ? 'Khóa Clerk của frontend và backend không cùng instance. Hãy đồng bộ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY với CLERK_SECRET_KEY, hoặc cấu hình CLERK_JWT_KEY từ cùng Clerk instance.'
+                    : `Token Clerk không hợp lệ hoặc đã hết hạn (${reason})`;
+                throw new common_1.UnauthorizedException(message);
             }
         }
         if (!clerkUserId) {
@@ -194,10 +223,18 @@ let ClerkAuthGuard = class ClerkAuthGuard {
         if (user.status === 'BANNED') {
             throw new common_1.UnauthorizedException('Tài khoản của bạn đã bị khóa');
         }
+        const role = (0, admin_constants_1.getEffectiveRole)(user.email, user.role);
+        if (role !== user.role) {
+            user = await this.prisma.user.update({
+                where: { id: user.id },
+                data: { role: 'CUSTOMER', refreshToken: null },
+                include: { profile: true },
+            });
+        }
         request.user = {
             sub: user.id,
             email: user.email,
-            role: user.role,
+            role,
             clerkUserId,
         };
         return true;

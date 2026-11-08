@@ -75,6 +75,12 @@ let InstallmentController = class InstallmentController {
         }
         throw new common_1.BadRequestException('Vui lòng tải lên tệp ảnh hoặc chuỗi dữ liệu ảnh base64');
     }
+    sendOtp(dto) {
+        return this.installmentService.sendOtp(dto.email);
+    }
+    verifyOtp(dto) {
+        return this.installmentService.verifyOtp(dto);
+    }
     async createApplication(dto, req) {
         const userId = this.extractUserIdFromReq(req);
         return this.installmentService.createApplication(dto, userId);
@@ -142,6 +148,20 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], InstallmentController.prototype, "uploadFile", null);
+__decorate([
+    (0, common_1.Post)('otp/send'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [installment_application_dto_1.RequestInstallmentOtpDto]),
+    __metadata("design:returntype", void 0)
+], InstallmentController.prototype, "sendOtp", null);
+__decorate([
+    (0, common_1.Post)('otp/verify'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [installment_application_dto_1.VerifyInstallmentOtpDto]),
+    __metadata("design:returntype", void 0)
+], InstallmentController.prototype, "verifyOtp", null);
 __decorate([
     (0, common_1.Post)('applications'),
     __param(0, (0, common_1.Body)()),

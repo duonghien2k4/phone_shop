@@ -6,10 +6,31 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Min,
+  IsUUID,
 } from 'class-validator';
 
+export class RequestInstallmentOtpDto {
+  @IsEmail()
+  email: string;
+}
+
+export class VerifyInstallmentOtpDto {
+  @IsUUID()
+  challengeId: string;
+
+  @IsEmail()
+  email: string;
+
+  @Matches(/^\d{6}$/)
+  code: string;
+}
+
 export class CreateInstallmentApplicationDto {
+  @IsUUID()
+  otpChallengeId: string;
+
   @IsString()
   @IsNotEmpty()
   financePartnerId: string;
@@ -71,9 +92,8 @@ export class CreateInstallmentApplicationDto {
   @IsNotEmpty()
   phoneNumber: string;
 
-  @IsOptional()
   @IsEmail()
-  email?: string;
+  email: string;
 
   @IsOptional()
   @IsString()
@@ -221,4 +241,3 @@ export class QueryInstallmentDto {
   @IsOptional()
   search?: string;
 }
-

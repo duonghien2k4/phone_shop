@@ -29,6 +29,11 @@ import { motion } from 'framer-motion';
 import { APP_CONFIG } from '@/constants/config';
 
 import { useWishlist } from '@/hooks/useWishlist';
+import {
+  areSameProductVariants,
+  getProductVariantKey,
+  getProductVariantLabel,
+} from '@/utils/product-variant';
 
 interface CompactProductCardProps {
   product: MockProduct;
@@ -64,6 +69,12 @@ export default function CompactProductCard({
   const comparedProducts = useCompareStore((state) => state.comparedProducts);
   const addCompare = useCompareStore((state) => state.addProduct);
   const isCompared = isMounted && comparedProducts.some((p) => p.id === product.id);
+
+  const isOutOfStock =
+    (selectedVariant?.stock !== undefined && selectedVariant.stock <= 0) ||
+    selectedVariant?.inventory?.status === 'OUT_OF_STOCK' ||
+    product.inStock === false ||
+    (product.stock !== undefined && product.stock <= 0);
 
   const hasSpecs = Boolean(product.specs?.screen || product.specs?.chip || product.specs?.ram);
 
@@ -117,6 +128,14 @@ export default function CompactProductCard({
               <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
             </Button>
           </div>
+
+          {isOutOfStock && (
+            <div className="absolute top-2.5 left-2.5 z-10">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white shadow-sm">
+                Hết hàng
+              </span>
+            </div>
+          )}
 
           {/* Product Image: Click opens Detail Modal */}
           <div
@@ -178,13 +197,13 @@ export default function CompactProductCard({
                     fontSize: '11px',
                   }}
                 >
-                  <HelpCircle size={12} /> Đang cập nhật thông số
+                  <HelpCircle size={12} /> Đang cập nhật thông số 
                 </span>
               )}
             </div>
 
             {/* Interactive Storage Variants Selector */}
-            {product.variants && product.variants.length > 0 && (
+            {/* {product.variants && product.variants.length > 0 && (
               <div
                 className="product-variants-selector"
                 style={{ marginTop: '4px', marginBottom: '6px' }}
@@ -192,19 +211,19 @@ export default function CompactProductCard({
               >
                 {product.variants.map((v, idx) => (
                   <button
-                    key={v.id || `${v.storage}-${idx}`}
+                    key={getProductVariantKey(v, idx)}
                     type="button"
-                    className={`variant-pill-btn ${selectedVariant.storage === v.storage ? 'active' : ''}`}
+                    className={`variant-pill-btn ${areSameProductVariants(selectedVariant, v) ? 'active' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedVariant(v);
                     }}
                   >
-                    {v.storage}
+                    {getProductVariantLabel(v)}
                   </button>
                 ))}
               </div>
-            )}
+            )} */}
 
             <div className="product-price-section">
               <span className="product-card-price">{formatVND(selectedVariant.price)}</span>

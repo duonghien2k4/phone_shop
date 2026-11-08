@@ -1,8 +1,8 @@
 /**
  * Centralized HTTP client for the NestJS API.
  * Supports two auth layers:
- *  1. Clerk session token (for Clerk-signed users)
- *  2. Local JWT access token (for email/password-signed users)
+ *  1. Local JWT access token (for email/password-signed users, including admin)
+ *  2. Clerk session token (for Clerk-signed customers)
  */
 
 const API_BASE_URL =
@@ -46,21 +46,19 @@ export async function apiClient<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { skipAuth = false, _isRetry = false, ...fetchOptions } = options;
+  const requiresAuth = !skipAuth || endpoint.startsWith('/admin/');
   const headers: Record<string, string> = {
     ...(fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(fetchOptions.headers as Record<string, string>),
   };
 
-  if (!skipAuth) {
-    // 1. Try Clerk token first
-    let token: string | null = null;
-    if (clerkTokenGetter) {
-      token = await clerkTokenGetter();
-    }
+  if (requiresAuth && !headers.Authorization) {
+    // 1. Check local JWT token first (synchronous, instant for Admin / local auth)
+    let token: string | null = localTokenGetter ? localTokenGetter() : null;
 
-    // 2. Fall back to local JWT token
-    if (!token && localTokenGetter) {
-      token = localTokenGetter();
+    // 2. If no local token, fetch Clerk session token (for customers logged in via Clerk)
+    if (!token && clerkTokenGetter) {
+      token = await clerkTokenGetter();
     }
 
     if (token) {
@@ -75,7 +73,7 @@ export async function apiClient<T>(
   });
 
   // If 401 and not already retried, force fresh token from Clerk and retry once
-  if (response.status === 401 && !skipAuth && !_isRetry && clerkTokenGetter) {
+  if (response.status === 401 && requiresAuth && !_isRetry && clerkTokenGetter) {
     try {
       const freshToken = await clerkTokenGetter({ skipCache: true });
       if (freshToken) {
@@ -100,7 +98,7 @@ export async function apiClient<T>(
     };
     const message = Array.isArray(errorData.message)
       ? errorData.message[0]
-      : (errorData.message ?? 'Có lỗi xảy ra');
+      : (errorData.message ?? 'Co loi xay ra');
     throw new ApiError(response.status, message, errorData);
   }
 

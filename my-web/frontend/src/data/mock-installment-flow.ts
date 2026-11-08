@@ -173,7 +173,7 @@ export const MOCK_INITIAL_KYC: CustomerKycInfo = {
   dob: '15/08/1996',
   gender: 'Nam',
   phone: '0988 123 456',
-  email: 'nam.nguyen@gmail.com',
+  email: '',
   permanentAddress: 'Số 18, Ngõ 45 Trần Thái Tông, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội',
   currentAddress: 'Tòa Discovery Complex, 302 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội',
   jobTitle: 'Nhân viên văn phòng / Kỹ sư phần mềm',

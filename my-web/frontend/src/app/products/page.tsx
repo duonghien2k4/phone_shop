@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import Header from '@/components/base/Header';
 import Footer from '@/components/base/Footer';
-import ProductCard from '@/components/features/product/ProductCard';
 import ProductDetailModal from '@/components/features/product/ProductDetailModal';
 import CompareFloatingBar from '@/components/features/product/CompareFloatingBar';
 import Pagination from '@/components/base/Pagination';
@@ -54,8 +53,12 @@ const SORT_OPTIONS = [
 function ProductsContent() {
   const searchParams = useSearchParams();
   const searchFromUrl = searchParams.get('search') || '';
+  const requestedBrand = searchParams.get('brand') || '';
 
-  const [selectedBrand, setSelectedBrand] = useState('Tất cả');
+  const [brandSelectionOverride, setBrandSelectionOverride] = useState<{
+    query: string;
+    brand: string;
+  } | null>(null);
   const [selectedPriceRange, setSelectedPriceRange] = useState(0); // index 0: Tất cả
   const [sortBy, setSortBy] = useState('featured');
   const [userQuery, setUserQuery] = useState<string | null>(null);
@@ -77,9 +80,34 @@ function ProductsContent() {
     };
   }, []);
 
-  const searchQuery = userQuery !== null ? userQuery : searchFromUrl;
   const ALL_PHONES = useMemo(() => products.filter((p) => p.category === 'Điện thoại'), [products]);
   const BRANDS = useMemo(() => ['Tất cả', ...Array.from(new Set(ALL_PHONES.map((p) => p.brand))).filter(Boolean)], [ALL_PHONES]);
+
+  const requestedFilter = requestedBrand || searchFromUrl;
+  const normalizedFilter = requestedFilter.trim().toLowerCase();
+  const brandAliases: Record<string, string> = {
+    iphone: 'apple',
+    'google pixel': 'google',
+  };
+  const brandName = brandAliases[normalizedFilter] || normalizedFilter;
+  const matchingUrlBrand = BRANDS.find(
+    (brand) => {
+      const normalizedBrand = brand.trim().toLowerCase();
+      return (
+        normalizedBrand === brandName ||
+        (brandName === 'apple' && normalizedBrand.includes('iphone'))
+      );
+    },
+  );
+  const selectedBrand =
+    brandSelectionOverride?.query === requestedFilter
+      ? brandSelectionOverride.brand
+      : matchingUrlBrand || 'Tất cả';
+  const setSelectedBrand = (brand: string) =>
+    setBrandSelectionOverride({ query: requestedFilter, brand });
+  const isBrandSearch = Boolean(requestedBrand || matchingUrlBrand);
+  const searchQuery: string =
+    userQuery ?? (isBrandSearch ? '' : searchFromUrl);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -111,7 +139,7 @@ function ProductsContent() {
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0; // default featured
     });
-  }, [selectedBrand, selectedPriceRange, sortBy, searchQuery]);
+  }, [ALL_PHONES, selectedBrand, selectedPriceRange, sortBy, searchQuery]);
 
   // Reset to page 1 whenever any filter changes
   React.useEffect(() => {

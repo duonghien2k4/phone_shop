@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useRequireClerkAuth } from '@/hooks/useRequireClerkAuth';
 import { adminService, DashboardData } from '@/services/admin.service';
 
 // Admin layout & tabs
@@ -29,7 +28,6 @@ import { AiMonitoringTab } from '@/components/admin/AiMonitoringTab';
 
 export default function AdminPage() {
   const router = useRouter();
-  const canRender = useRequireClerkAuth();
   const { user, isInitialized, isAdmin, isStaff } = useAuth();
   const clearAuth = useAuthStore((state) => state.logout);
   const [isPreview] = useState(
@@ -55,35 +53,33 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
+    if (!isInitialized) return;
+
     if (isPreview) {
       void loadDashboard();
       return;
     }
-    // If logged in via internal admin login (user is admin or staff)
-    if (user && (isAdmin || isStaff)) {
-      void loadDashboard();
-      return;
-    }
-    if (!canRender || !isInitialized) return;
-    if (!isAdmin && !isStaff) {
+
+    if (!user || (!isAdmin && !isStaff)) {
       router.replace('/admin/login');
       return;
     }
+
     void loadDashboard();
-  }, [canRender, isInitialized, user, isAdmin, isStaff, isPreview, router]);
+  }, [isInitialized, user, isAdmin, isStaff, isPreview, router]);
 
   const handleLogout = () => {
     clearAuth();
     router.replace('/admin/login');
   };
 
-  const isAuthorized = isPreview || (user && (isAdmin || isStaff)) || (canRender && (isAdmin || isStaff));
+  const isAuthorized = isPreview || (user && (isAdmin || isStaff));
 
-  if (!isAuthorized) {
+  if (!isInitialized || !isAuthorized) {
     return (
       <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white space-y-3">
         <ShieldCheck size={36} className="text-blue-500 animate-pulse" />
-        <p className="text-sm font-semibold tracking-wide">Đang xác thực quyền truy cập Quản trị viên...</p>
+        <p className="text-sm font-semibold tracking-wide">Đang chuyển hướng tới Đăng nhập Quản trị viên...</p>
       </main>
     );
   }

@@ -380,26 +380,6 @@ export default function Step4ContractSuccess() {
               </div>
             )}
           </div>
-
-          {/* Box 4: Action Tools (Tải PDF & In Phiếu) */}
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              className="flex-1 min-w-[200px] h-12 rounded-xl bg-[#eaedff] text-[#143de7] hover:bg-[#dae2fd] border border-[#143de7]/20 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Download className="size-4" />
-              TẢI BẢN HỢP ĐỒNG PDF ĐẦY ĐỦ
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex-1 min-w-[200px] h-12 rounded-xl bg-white text-[#131b2e] hover:bg-[#eaedff] border border-[#c4c5d9] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Printer className="size-4" />
-              IN PHIẾU NHẬN HÀNG TẠI SHOP
-            </button>
-          </div>
         </section>
 
         {/* ================= RIGHT COLUMN: THÔNG TIN NHẬN THIẾT BỊ & HƯỚNG DẪN TẠI QUẦY (5 cols) ================= */}
@@ -409,7 +389,7 @@ export default function Step4ContractSuccess() {
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#f2f3ff] p-2 border border-[#c4c5d9]/40 shrink-0 flex items-center justify-center">
                 <img
-                  src={selectedDevice.image}
+                  src={selectedDevice.image || '/placeholder-phone.svg'}
                   alt={selectedDevice.name}
                   className="w-full h-full object-contain"
                 />
@@ -609,4 +589,3 @@ export default function Step4ContractSuccess() {
     </div>
   );
 }
-

@@ -13,6 +13,7 @@ exports.RolesGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const roles_decorator_1 = require("../decorators/roles.decorator");
+const admin_constants_1 = require("../constants/admin.constants");
 let RolesGuard = class RolesGuard {
     reflector;
     constructor(reflector) {
@@ -27,7 +28,8 @@ let RolesGuard = class RolesGuard {
             .switchToHttp()
             .getRequest();
         const user = request.user;
-        return requiredRoles.some((role) => user?.role === role);
+        return requiredRoles.some((role) => user?.role === role &&
+            (role !== 'ADMIN' || (0, admin_constants_1.isSoleAdminEmail)(user.email)));
     }
 };
 exports.RolesGuard = RolesGuard;

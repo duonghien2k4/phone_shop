@@ -23,6 +23,7 @@ export const appConfig = () => ({
 
   clerk: {
     secretKey: process.env.CLERK_SECRET_KEY ?? '',
+    jwtKey: process.env.CLERK_JWT_KEY ?? '',
   },
 
   redis: {
@@ -44,12 +45,12 @@ export const appConfig = () => ({
       process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-ada-002',
   },
 
-  mail: {
-    host: process.env.MAIL_HOST ?? 'smtp.gmail.com',
-    port: parseInt(process.env.MAIL_PORT ?? '587', 10),
-    user: process.env.MAIL_USER ?? '',
-    password: process.env.MAIL_PASSWORD ?? '',
-    from: process.env.MAIL_FROM ?? 'noreply@phoneshop.vn',
+  emailjs: {
+    serviceId: process.env.EMAILJS_SERVICE_ID ?? '',
+    templateId: process.env.EMAILJS_TEMPLATE_ID ?? '',
+    confirmTemplateId: process.env.EMAILJS_CONFIRM_TEMPLATE_ID ?? '',
+    publicKey: process.env.EMAILJS_PUBLIC_KEY ?? '',
+    privateKey: process.env.EMAILJS_PRIVATE_KEY ?? '',
   },
 
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',

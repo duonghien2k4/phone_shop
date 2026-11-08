@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { wishlistService } from '@/services/wishlist.service';
+import { wishlistService, type WishlistItemResponse } from '@/services/wishlist.service';
 
 interface WishlistState {
   productIds: number[];
-  items: any[];
+  items: WishlistItemResponse[];
   isLoading: boolean;
   hasFetched: boolean;
   isFetching: boolean;
-  setWishlist: (productIds: number[], items?: any[]) => void;
+  setWishlist: (productIds: number[], items?: WishlistItemResponse[]) => void;
   toggleLocal: (productId: number) => boolean;
   isWishlisted: (productId: number) => boolean;
   setLoading: (isLoading: boolean) => void;
@@ -73,9 +73,10 @@ export const useWishlistStore = create<WishlistState>()(
               isLoading: false,
             });
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           // If 401 occurs (token invalid/expired or guest), do not keep hammering server
-          console.warn('Wishlist sync warning:', error?.message || error);
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn('Wishlist sync warning:', message);
           set({ isFetching: false, isLoading: false, hasFetched: true });
         }
       },

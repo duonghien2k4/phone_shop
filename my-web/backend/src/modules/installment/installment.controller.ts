@@ -15,7 +15,9 @@ import type { Request } from 'express';
 import {
   CancelApplicationDto,
   CreateInstallmentApplicationDto,
+  RequestInstallmentOtpDto,
   ResubmitInstallmentDto,
+  VerifyInstallmentOtpDto,
 } from './dto/installment-application.dto';
 import { InstallmentService } from './installment.service';
 import * as jwt from 'jsonwebtoken';
@@ -56,6 +58,16 @@ export class InstallmentController {
       return { url };
     }
     throw new BadRequestException('Vui lòng tải lên tệp ảnh hoặc chuỗi dữ liệu ảnh base64');
+  }
+
+  @Post('otp/send')
+  sendOtp(@Body() dto: RequestInstallmentOtpDto) {
+    return this.installmentService.sendOtp(dto.email);
+  }
+
+  @Post('otp/verify')
+  verifyOtp(@Body() dto: VerifyInstallmentOtpDto) {
+    return this.installmentService.verifyOtp(dto);
   }
 
   @Post('applications')

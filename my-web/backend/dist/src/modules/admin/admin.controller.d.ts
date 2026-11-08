@@ -1,7 +1,10 @@
 import { AdminService } from './admin.service';
+import { CloudinaryUploadService } from './cloudinary-upload.service';
+import type { UploadedImageFile } from './cloudinary-upload.service';
 export declare class AdminController {
     private readonly adminService;
-    constructor(adminService: AdminService);
+    private readonly cloudinaryUploadService;
+    constructor(adminService: AdminService, cloudinaryUploadService: CloudinaryUploadService);
     getDashboardStats(): Promise<{
         overview: {
             totalRevenue: number;
@@ -60,6 +63,9 @@ export declare class AdminController {
             orders: number;
         }[];
     }>;
+    uploadProductImage(file?: UploadedImageFile): Promise<{
+        url: string;
+    }>;
     getProducts(page?: string, limit?: string, search?: string, categoryId?: string, brandId?: string): Promise<{
         items: ({
             category: {
@@ -103,6 +109,14 @@ export declare class AdminController {
                 oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
                 imageUrl: string | null;
             })[];
+            images: {
+                url: string;
+                id: number;
+                createdAt: Date;
+                productId: number;
+                altText: string | null;
+                sortOrder: number;
+            }[];
         } & {
             id: number;
             name: string;
@@ -178,6 +192,14 @@ export declare class AdminController {
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
+        images: {
+            url: string;
+            id: number;
+            createdAt: Date;
+            productId: number;
+            altText: string | null;
+            sortOrder: number;
+        }[];
     } & {
         id: number;
         name: string;
@@ -246,6 +268,14 @@ export declare class AdminController {
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
+        images: {
+            url: string;
+            id: number;
+            createdAt: Date;
+            productId: number;
+            altText: string | null;
+            sortOrder: number;
+        }[];
     } & {
         id: number;
         name: string;

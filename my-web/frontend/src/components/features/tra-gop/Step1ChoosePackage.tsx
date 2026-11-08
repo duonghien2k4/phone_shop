@@ -73,7 +73,7 @@ export default function Step1ChoosePackage() {
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <div className="w-20 h-20 rounded-xl bg-[#f2f3ff] p-2 shrink-0 border border-[#c4c5d9]/40 flex items-center justify-center">
                 <img
-                  src={selectedDevice.image}
+                  src={selectedDevice.image || '/placeholder-phone.svg'}
                   alt={selectedDevice.name}
                   className="w-full h-full object-contain"
                 />
@@ -519,7 +519,7 @@ export default function Step1ChoosePackage() {
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#c4c5d9]/30">
               <div className="w-16 h-16 rounded-xl bg-[#f2f3ff] p-1.5 shrink-0 border border-[#c4c5d9]/30 flex items-center justify-center">
                 <img
-                  src={selectedDevice.image}
+                  src={selectedDevice.image || '/placeholder-phone.svg'}
                   alt={selectedDevice.name}
                   className="w-full h-full object-contain"
                 />
@@ -693,4 +693,3 @@ export default function Step1ChoosePackage() {
     </div>
   );
 }
-

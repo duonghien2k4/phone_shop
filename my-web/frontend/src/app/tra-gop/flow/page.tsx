@@ -13,12 +13,18 @@ import Step2KycVerification from '@/components/features/tra-gop/Step2KycVerifica
 import Step3AiApproval from '@/components/features/tra-gop/Step3AiApproval';
 import Step4ContractSuccess from '@/components/features/tra-gop/Step4ContractSuccess';
 import { useInstallmentFlowStore } from '@/store/useInstallmentFlowStore';
+import { useCart } from '@/hooks/useCart';
+import type { InstallmentDevice } from '@/types/installment-flow';
 
 function FlowContent() {
   const searchParams = useSearchParams();
-  const { currentStep, initFromQuery } = useInstallmentFlowStore();
+  const { items } = useCart();
+  const { currentStep, initFromQuery, setSelectedDevice } = useInstallmentFlowStore();
+  const cartVariantId = searchParams.get('cartVariantId');
+  const cartItem = cartVariantId
+    ? items.find((item) => item.variantId === Number(cartVariantId))
+    : undefined;
 
-  // Initialize store from URL query if user navigated from product or portal
   useEffect(() => {
     initFromQuery({
       deviceId: searchParams.get('deviceId'),
@@ -27,7 +33,25 @@ function FlowContent() {
       method: searchParams.get('method'),
       partnerId: searchParams.get('partnerId'),
     });
-  }, [searchParams, initFromQuery]);
+
+    if (cartItem) {
+      const device: InstallmentDevice = {
+        id: `cart-${cartItem.variantId}`,
+        name: cartItem.productName,
+        subname: cartItem.storage,
+        version: 'Sản phẩm trong giỏ hàng',
+        color: cartItem.color || 'Mặc định',
+        colorName: cartItem.color || 'Mặc định',
+        storage: cartItem.storage || 'Mặc định',
+        originalPrice: cartItem.price,
+        price: cartItem.price,
+        image: cartItem.imageUrl || '',
+        tag: 'Sản phẩm đã chọn',
+        badge: 'Trả góp 0%',
+      };
+      setSelectedDevice(device);
+    }
+  }, [cartItem, initFromQuery, searchParams, setSelectedDevice]);
 
   return (
     <main className="grow w-full max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-6">

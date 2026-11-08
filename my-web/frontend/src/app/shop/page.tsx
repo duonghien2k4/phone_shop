@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import Header from '@/components/base/Header';
 import Footer from '@/components/base/Footer';
-import ProductCard from '@/components/features/product/ProductCard';
 import CompactProductCard from '@/components/features/product/CompactProductCard';
 import ProductDetailModal from '@/components/features/product/ProductDetailModal';
 import CountdownTimer from '@/components/features/flashsale/CountdownTimer';

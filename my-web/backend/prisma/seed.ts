@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { SOLE_ADMIN_EMAIL } from '../src/common/constants/admin.constants';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
@@ -21,13 +22,13 @@ async function main() {
   const customerPasswordHash = await bcrypt.hash('customer123456', salt);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@socmobile.vn' },
+    where: { email: SOLE_ADMIN_EMAIL },
     update: {
       role: 'ADMIN',
       status: 'ACTIVE',
     },
     create: {
-      email: 'admin@socmobile.vn',
+      email: SOLE_ADMIN_EMAIL,
       passwordHash: adminPasswordHash,
       role: 'ADMIN',
       status: 'ACTIVE',
@@ -42,25 +43,14 @@ async function main() {
     },
   });
 
-  await prisma.user.upsert({
-    where: { email: 'admin@phoneshop.vn' },
-    update: {
+  await prisma.user.updateMany({
+    where: {
       role: 'ADMIN',
-      status: 'ACTIVE',
+      NOT: { email: SOLE_ADMIN_EMAIL },
     },
-    create: {
-      email: 'admin@phoneshop.vn',
-      passwordHash: adminPasswordHash,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      profile: {
-        create: {
-          fullName: 'Quan Tri Vien Soc Mobile',
-          phone: '0988888888',
-          address: '180 Nguyen Trai',
-          city: 'Ha Noi',
-        },
-      },
+    data: {
+      role: 'CUSTOMER',
+      refreshToken: null,
     },
   });
 

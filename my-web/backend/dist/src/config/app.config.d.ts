@@ -12,6 +12,7 @@ export declare const appConfig: () => {
     };
     clerk: {
         secretKey: string;
+        jwtKey: string;
     };
     redis: {
         host: string;
@@ -28,12 +29,12 @@ export declare const appConfig: () => {
         model: string;
         embeddingModel: string;
     };
-    mail: {
-        host: string;
-        port: number;
-        user: string;
-        password: string;
-        from: string;
+    emailjs: {
+        serviceId: string;
+        templateId: string;
+        confirmTemplateId: string;
+        publicKey: string;
+        privateKey: string;
     };
     frontendUrl: string;
     cors: {

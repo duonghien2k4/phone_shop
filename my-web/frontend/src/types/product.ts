@@ -1,6 +1,6 @@
 /**
  * Product-related Types and Interfaces
- * Defins structures for smartphone products, variants, and specifications.
+ * Defines structures for smartphone products, variants, and specifications.
  *
  * Related: src/data/mock-products.ts, src/components/features/product/ProductCard.tsx
  * Pattern: Shared Domain Types
@@ -16,6 +16,12 @@ export interface ProductVariant {
   oldPrice?: number;
   imageUrl?: string | null;
   ram?: string | null;
+  stock?: number;
+  inventory?: {
+    stock: number;
+    reserved?: number;
+    status: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | string;
+  };
 }
 
 export interface ProductSpecs {
@@ -33,6 +39,7 @@ export interface MockProduct {
   badge: string;
   badgeType: 'success' | 'warning' | 'danger' | 'info';
   image: string;
+  images?: string[];
   brand: string;
   category: string;
   tags: string[];
@@ -42,6 +49,8 @@ export interface MockProduct {
   promotionText: string;
   installment: boolean;
   fastDelivery: boolean;
+  stock?: number;
+  inStock?: boolean;
   specs: ProductSpecs;
   variants: ProductVariant[];
 }

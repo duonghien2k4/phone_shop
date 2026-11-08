@@ -48,6 +48,7 @@ const config_1 = require("@nestjs/config");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
 const prisma_service_1 = require("../../database/prisma.service");
+const admin_constants_1 = require("../../common/constants/admin.constants");
 let AuthService = class AuthService {
     prisma;
     jwtService;
@@ -105,7 +106,8 @@ let AuthService = class AuthService {
         if (user.status === 'BANNED') {
             throw new common_1.UnauthorizedException('Tài khoản của bạn đã bị khóa');
         }
-        const payload = { sub: user.id, email: user.email, role: user.role };
+        const role = (0, admin_constants_1.getEffectiveRole)(user.email, user.role);
+        const payload = { sub: user.id, email: user.email, role };
         const accessToken = this.jwtService.sign(payload, {
             secret: this.configService.get('jwt.accessSecret'),
             expiresIn: this.configService.get('jwt.accessExpiresIn'),
@@ -116,7 +118,10 @@ let AuthService = class AuthService {
         });
         await this.prisma.user.update({
             where: { id: user.id },
-            data: { refreshToken },
+            data: {
+                refreshToken,
+                ...(role !== user.role ? { role: 'CUSTOMER' } : {}),
+            },
         });
         return {
             accessToken,
@@ -124,7 +129,7 @@ let AuthService = class AuthService {
             user: {
                 id: user.id,
                 email: user.email,
-                role: user.role,
+                role,
                 fullName: user.profile?.fullName,
                 avatarUrl: user.profile?.avatarUrl,
             },
@@ -141,7 +146,14 @@ let AuthService = class AuthService {
             if (!user || user.refreshToken !== token) {
                 throw new common_1.UnauthorizedException('Phiên làm việc không hợp lệ');
             }
-            const newPayload = { sub: user.id, email: user.email, role: user.role };
+            const role = (0, admin_constants_1.getEffectiveRole)(user.email, user.role);
+            if (role !== user.role) {
+                await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: { role: 'CUSTOMER', refreshToken: null },
+                });
+            }
+            const newPayload = { sub: user.id, email: user.email, role };
             const accessToken = this.jwtService.sign(newPayload, {
                 secret: this.configService.get('jwt.accessSecret'),
                 expiresIn: this.configService.get('jwt.accessExpiresIn'),
@@ -169,7 +181,7 @@ let AuthService = class AuthService {
         return {
             id: user.id,
             email: user.email,
-            role: user.role,
+            role: (0, admin_constants_1.getEffectiveRole)(user.email, user.role),
             fullName: user.profile?.fullName,
             avatarUrl: user.profile?.avatarUrl,
         };

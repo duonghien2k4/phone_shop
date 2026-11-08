@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Eye,
   RefreshCw,
+  ImagePlus,
+  X,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,7 @@ import { adminService } from '@/services/admin.service';
 
 export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) => {
   const [products, setProducts] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [brands, setBrands] = useState<any[]>([]);
@@ -40,6 +43,11 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
   // Modal Product
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState('');
+  const [secondaryImageFiles, setSecondaryImageFiles] = useState<File[]>([]);
+  const [existingSecondaryImages, setExistingSecondaryImages] = useState<string[]>([]);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [formData, setFormData] = useState<any>({
     name: '',
     basePrice: 0,
@@ -62,6 +70,12 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
     oldPrice: 38000000,
     stock: 50,
   });
+
+  useEffect(() => {
+    return () => {
+      if (mainImagePreview) URL.revokeObjectURL(mainImagePreview);
+    };
+  }, [mainImagePreview]);
 
   const loadData = async (page = 1) => {
     setIsLoading(true);
@@ -94,13 +108,17 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
+    setMainImageFile(null);
+    setMainImagePreview('');
+    setSecondaryImageFiles([]);
+    setExistingSecondaryImages([]);
     setFormData({
       name: '',
       basePrice: 20000000,
       salePrice: 18500000,
       brandId: brands[0]?.id || 1,
       categoryId: categories[0]?.id || 1,
-      image: 'https://cdn.tgdd.vn/Products/Images/42/342679/iphone-17-pro-max-cam-thumb-600x600.jpg',
+      image: '',
       description: 'Sản phẩm chính hãng Sóc Mobile bảo hành 12 tháng.',
       badge: 'Giảm -5%',
     });
@@ -109,6 +127,10 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
 
   const handleOpenEdit = (p: any) => {
     setEditingProduct(p);
+    setMainImageFile(null);
+    setMainImagePreview('');
+    setSecondaryImageFiles([]);
+    setExistingSecondaryImages((p.images || []).map((image: { url: string }) => image.url));
     setFormData({
       name: p.name,
       basePrice: Number(p.basePrice),
@@ -122,18 +144,46 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
     setIsModalOpen(true);
   };
 
+  const handleOpenDetails = (product: any) => {
+    setSelectedProduct(product);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingProduct && !mainImageFile) {
+      alert('Vui lòng tải ảnh chính của sản phẩm lên.');
+      return;
+    }
+
+    setIsSavingProduct(true);
     try {
+      const mainImage = mainImageFile
+        ? (await adminService.uploadProductImage(mainImageFile)).url
+        : formData.image;
+      const secondaryImageUrls = secondaryImageFiles.length
+        ? await Promise.all(
+            secondaryImageFiles.map(async (file) =>
+              (await adminService.uploadProductImage(file)).url,
+            ),
+          )
+        : [];
+      const productData = {
+        ...formData,
+        image: mainImage,
+        images: [...existingSecondaryImages, ...secondaryImageUrls],
+      };
+
       if (editingProduct) {
-        await adminService.updateProduct(editingProduct.id, formData);
+        await adminService.updateProduct(editingProduct.id, productData);
       } else {
-        await adminService.createProduct(formData);
+        await adminService.createProduct(productData);
       }
       setIsModalOpen(false);
       void loadData(pagination.page);
     } catch (err) {
       alert('Lỗi lưu sản phẩm: ' + (err as Error).message);
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -276,7 +326,19 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                     0
                   );
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                    <tr
+                      key={p.id}
+                      tabIndex={0}
+                      aria-label={`Xem chi tiết sản phẩm ${p.name}`}
+                      onClick={() => handleOpenDetails(p)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleOpenDetails(p);
+                        }
+                      }}
+                      className="cursor-pointer hover:bg-blue-50/60 focus-visible:bg-blue-50/60 focus-visible:outline-hidden transition"
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <img
@@ -340,7 +402,10 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => handleOpenVariants(p)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenVariants(p);
+                            }}
                             className="p-1.5 rounded text-blue-600 hover:bg-blue-50 transition"
                             title="Quản lý biến thể dung lượng / màu"
                           >
@@ -348,7 +413,10 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleOpenEdit(p)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenEdit(p);
+                            }}
                             className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition"
                             title="Chỉnh sửa sản phẩm"
                           >
@@ -356,7 +424,10 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(p.id, p.name)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDelete(p.id, p.name);
+                            }}
                             className="p-1.5 rounded text-rose-600 hover:bg-rose-50 transition"
                             title="Ẩn sản phẩm"
                           >
@@ -399,6 +470,149 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
           </div>
         </div>
       </Card>
+
+      <Dialog
+        open={Boolean(selectedProduct)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProduct(null);
+        }}
+      >
+        {selectedProduct && (
+          <div>
+            <DialogHeader>
+              <DialogTitle>Chi tiết sản phẩm</DialogTitle>
+              <DialogDescription>
+                Thông tin sản phẩm, hình ảnh, giá bán và các biến thể.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
+              <img
+                src={selectedProduct.image || '/images/default-phone.png'}
+                alt={selectedProduct.name}
+                className="h-44 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain p-3"
+              />
+              <div className="space-y-3 text-sm">
+                <div>
+                  <h3 className="font-bold text-slate-900">{selectedProduct.name}</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {selectedProduct.brand?.name || 'Chưa có thương hiệu'} ·{' '}
+                    {selectedProduct.category?.name || 'Chưa có danh mục'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant={selectedProduct.isActive ? 'default' : 'secondary'}>
+                    {selectedProduct.isActive ? 'Đang bán' : 'Tạm ẩn'}
+                  </Badge>
+                  {selectedProduct.badge && <Badge variant="outline">{selectedProduct.badge}</Badge>}
+                </div>
+                <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-xs">
+                  <div>
+                    <p className="text-slate-500">Giá bán</p>
+                    <p className="mt-1 font-bold text-slate-900">
+                      {Number(selectedProduct.salePrice || selectedProduct.basePrice).toLocaleString('vi-VN')}đ
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Giá niêm yết</p>
+                    <p className="mt-1 font-semibold text-slate-700">
+                      {Number(selectedProduct.basePrice).toLocaleString('vi-VN')}đ
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-600">
+                  {selectedProduct.description || 'Chưa có mô tả sản phẩm.'}
+                </p>
+              </div>
+            </div>
+
+            {selectedProduct.images?.length > 0 && (
+              <section className="mt-5">
+                <h3 className="mb-2 text-xs font-bold text-slate-800">Ảnh phụ</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedProduct.images.map((image: { id?: number; url: string }, index: number) => (
+                    <img
+                      key={image.id ?? image.url}
+                      src={image.url}
+                      alt={`Ảnh phụ ${index + 1} của ${selectedProduct.name}`}
+                      className="h-16 w-16 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {selectedProduct.specs && Object.keys(selectedProduct.specs).length > 0 && (
+              <section className="mt-5">
+                <h3 className="mb-2 text-xs font-bold text-slate-800">Thông số kỹ thuật</h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-slate-200 p-3 text-xs sm:grid-cols-3">
+                  {Object.entries(selectedProduct.specs)
+                    .filter(([, value]) => ['string', 'number'].includes(typeof value))
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        <dt className="text-slate-500">{key}</dt>
+                        <dd className="mt-0.5 font-semibold text-slate-800">{String(value)}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </section>
+            )}
+
+            <section className="mt-5">
+              <h3 className="mb-2 text-xs font-bold text-slate-800">
+                Biến thể ({selectedProduct.variants?.length || 0})
+              </h3>
+              <div className="max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+                {selectedProduct.variants?.length ? (
+                  selectedProduct.variants.map((variant: any) => (
+                    <div
+                      key={variant.id}
+                      className="flex flex-wrap items-center justify-between gap-2 p-3 text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-slate-800">{variant.storage}</span>
+                        {variant.color && <span className="ml-2 text-slate-600">{variant.color}</span>}
+                        {variant.ram && <span className="ml-2 text-slate-500">RAM {variant.ram}</span>}
+                        {variant.sku && <p className="mt-1 text-[11px] text-slate-400">SKU: {variant.sku}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-slate-900">
+                          {Number(variant.price).toLocaleString('vi-VN')}đ
+                        </p>
+                        <p className="text-slate-500">Tồn kho: {variant.inventory?.stock ?? 0}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-3 text-xs text-slate-500">Sản phẩm chưa có biến thể.</p>
+                )}
+              </div>
+            </section>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedProduct(null)}
+                className="text-xs"
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  const product = selectedProduct;
+                  setSelectedProduct(null);
+                  handleOpenEdit(product);
+                }}
+                className="gap-1.5 bg-blue-600 text-xs font-bold text-white hover:bg-blue-700"
+              >
+                <Edit2 size={14} /> Chỉnh sửa
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </Dialog>
 
       {/* Modal: Thêm / Sửa sản phẩm */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -470,14 +684,88 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
               </div>
             </div>
 
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">URL Hình ảnh</label>
-              <Input
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                placeholder="https://..."
-                className="text-xs"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Ảnh chính {!editingProduct && '*'}
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 hover:border-blue-400">
+                  <ImagePlus size={18} className="shrink-0 text-blue-600" />
+                  <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                    {mainImageFile?.name || (formData.image ? 'Đổi ảnh chính' : 'Chọn ảnh chính để tải lên')}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      setMainImageFile(file);
+                      setMainImagePreview(file ? URL.createObjectURL(file) : '');
+                    }}
+                  />
+                </label>
+                {(mainImagePreview || formData.image) && (
+                  <img
+                    src={mainImagePreview || formData.image}
+                    alt="Ảnh chính sản phẩm"
+                    className="mt-2 h-20 w-20 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Ảnh phụ <span className="font-normal text-slate-400">(không bắt buộc)</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 hover:border-blue-400">
+                  <ImagePlus size={18} className="shrink-0 text-slate-500" />
+                  <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                    {secondaryImageFiles.length
+                      ? `Đã chọn ${secondaryImageFiles.length} ảnh`
+                      : 'Chọn một hoặc nhiều ảnh phụ'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(event) =>
+                      setSecondaryImageFiles(Array.from(event.target.files || []))
+                    }
+                  />
+                </label>
+                {existingSecondaryImages.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {existingSecondaryImages.map((url, index) => (
+                      <div key={`${url}-${index}`} className="relative">
+                        <img
+                          src={url}
+                          alt={`Ảnh phụ ${index + 1}`}
+                          className="h-16 w-16 rounded border border-slate-200 object-cover"
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Xóa ảnh phụ ${index + 1}`}
+                          onClick={() =>
+                            setExistingSecondaryImages((images) =>
+                              images.filter((_, imageIndex) => imageIndex !== index),
+                            )
+                          }
+                          className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-rose-600 shadow"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {secondaryImageFiles.length > 0 && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {secondaryImageFiles.map((file) => file.name).join(', ')}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div>
@@ -495,8 +783,8 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="text-xs">
               Hủy
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs">
-              Lưu sản phẩm
+            <Button type="submit" disabled={isSavingProduct} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs">
+              {isSavingProduct ? 'Đang tải ảnh và lưu...' : 'Lưu sản phẩm'}
             </Button>
           </DialogFooter>
         </form>
@@ -621,4 +909,3 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
     </div>
   );
 };
-

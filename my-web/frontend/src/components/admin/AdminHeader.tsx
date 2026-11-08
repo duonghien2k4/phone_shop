@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   User as UserIcon,
   LogOut,
-  ExternalLink,
   ChevronDown,
 } from 'lucide-react';
 import { AdminTab } from './AdminSidebar';
@@ -54,7 +53,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       </div>
 
       {/* Center: Global Search Entry Point */}
-      <div className="flex-1 max-w-md relative hidden md:block">
+      {/* <div className="flex-1 max-w-md relative hidden md:block">
         <div className="relative flex items-center">
           <Search size={15} className="absolute left-3.5 text-slate-400 pointer-events-none" />
           <input
@@ -74,7 +73,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             </button>
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* Right: Actions, Notifications & Avatar Dropdown */}
       <div className="flex items-center gap-3">
@@ -147,14 +146,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               </div>
 
               <div className="py-1">
-                <Link
-                  href="/shop"
-                  className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-50 transition"
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <ExternalLink size={14} className="text-slate-400" />
-                  <span>Mở giao diện khách hàng</span>
-                </Link>
                 {onLogout && (
                   <button
                     type="button"

@@ -82,12 +82,6 @@ export default function Product3DShowcase({ product }) {
               <h2>{chapter.heading}</h2>
               {chapter.sub && <p className="showcase-sub">{chapter.sub}</p>}
               {chapter.detail && <p className="showcase-detail">{chapter.detail}</p>}
-              {chapter.cta && (
-                <div className="showcase-cta">
-                  <button className="btn btn-primary">Explore the full specifications</button>
-                  <button className="btn btn-ghost bg-white!">Buy now</button>
-                </div>
-              )}
             </div>
           ))}
         </div>
