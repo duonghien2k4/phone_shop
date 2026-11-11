@@ -19,6 +19,12 @@ let CloudinaryUploadService = class CloudinaryUploadService {
         this.configService = configService;
     }
     async uploadProductImage(file) {
+        return this.uploadImage(file, 'phoneshop/products');
+    }
+    async uploadReceiptImage(file) {
+        return this.uploadImage(file, 'phoneshop/stock-receipts');
+    }
+    async uploadImage(file, folder) {
         if (!file.mimetype.startsWith('image/')) {
             throw new common_1.UnsupportedMediaTypeException('Chỉ chấp nhận tệp hình ảnh');
         }
@@ -29,7 +35,6 @@ let CloudinaryUploadService = class CloudinaryUploadService {
             throw new common_1.ServiceUnavailableException('Chưa cấu hình Cloudinary. Vui lòng kiểm tra CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY và CLOUDINARY_API_SECRET.');
         }
         const timestamp = Math.floor(Date.now() / 1000);
-        const folder = 'phoneshop/products';
         const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
         const signature = (0, node_crypto_1.createHash)('sha1')
             .update(signaturePayload)

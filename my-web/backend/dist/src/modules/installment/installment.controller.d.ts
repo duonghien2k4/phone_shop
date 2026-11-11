@@ -51,8 +51,6 @@ export declare class InstallmentController {
         };
         variants: {
             id: number;
-            createdAt: Date;
-            updatedAt: Date;
             productId: number;
             color: string;
             storage: string;
@@ -61,6 +59,14 @@ export declare class InstallmentController {
             price: import("@prisma/client-runtime-utils").Decimal;
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
+            inventory: {
+                id: number;
+                updatedAt: Date;
+                status: import("@prisma/client").$Enums.StockStatus;
+                variantId: number;
+                stock: number;
+                reserved: number;
+            } | null;
         }[];
         images: {
             url: string;
@@ -260,6 +266,7 @@ export declare class InstallmentController {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client-runtime-utils").Decimal;
+            inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
             subtotal: import("@prisma/client-runtime-utils").Decimal;
             shippingFee: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;

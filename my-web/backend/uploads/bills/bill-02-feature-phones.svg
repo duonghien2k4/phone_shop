@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#f3f4f6"/>
+  <rect x="70" y="50" width="760" height="1100" rx="8" fill="#fff" stroke="#111827" stroke-width="2"/>
+  <g font-family="Arial, sans-serif" fill="#111827">
+    <text x="450" y="105" text-anchor="middle" font-size="32" font-weight="700">SOC MOBILE</text>
+    <text x="450" y="140" text-anchor="middle" font-size="18">PHIEU NHAP HANG</text>
+    <text x="110" y="190" font-size="18">So phieu: PN-20261110-002</text>
+    <text x="110" y="220" font-size="18">Ngay: 10/11/2026</text>
+    <text x="110" y="250" font-size="18">Nha cung cap: Nokia Vietnam</text>
+    <line x1="105" y1="280" x2="795" y2="280" stroke="#111827" stroke-width="2"/>
+    <text x="110" y="315" font-size="16" font-weight="700">SAN PHAM</text>
+    <text x="600" y="315" font-size="16" font-weight="700">SL</text>
+    <text x="690" y="315" font-size="16" font-weight="700">GIA VON</text>
+    <line x1="105" y1="335" x2="795" y2="335" stroke="#9ca3af"/>
+    <text x="110" y="375" font-size="17">Dien thoai Nokia 220 4G</text>
+    <text x="110" y="402" font-size="14">SKU: NOKIA-207956-CAM   SL: 30</text>
+    <text x="110" y="428" font-size="14">Variant: 128GB - Cam</text>
+    <text x="610" y="400" font-size="18">30</text>
+    <text x="680" y="400" font-size="18">720,000</text>
+    <line x1="105" y1="465" x2="795" y2="465" stroke="#d1d5db"/>
+    <text x="110" y="525" font-size="17">Dien thoai Masstel IZI 10</text>
+    <text x="110" y="552" font-size="14">SKU: MASSTEL-265311-XANHDƯƠNG   SL: 20</text>
+    <text x="110" y="578" font-size="14">Variant: 128GB - Xanh Duong</text>
+    <text x="610" y="550" font-size="18">20</text>
+    <text x="680" y="550" font-size="18">310,000</text>
+    <line x1="105" y1="615" x2="795" y2="615" stroke="#d1d5db"/>
+    <text x="500" y="675" font-size="18" font-weight="700">TONG SO LUONG</text>
+    <text x="710" y="675" font-size="18" font-weight="700">50</text>
+    <text x="500" y="715" font-size="18" font-weight="700">TONG TIEN</text>
+    <text x="650" y="715" font-size="18" font-weight="700">27,800,000 VND</text>
+    <text x="110" y="810" font-size="16">Nguoi giao: Tran Minh Duc</text>
+    <text x="110" y="840" font-size="16">Ghi chu: Kiem dem du so luong</text>
+    <text x="450" y="1080" text-anchor="middle" font-size="15">Mau test OCR - khong co gia tri thanh toan</text>
+  </g>
+</svg>

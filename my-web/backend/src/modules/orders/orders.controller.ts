@@ -27,4 +27,12 @@ export class OrdersController {
   createOrder(@GetUser() user: UserPayload, @Body() dto: CreateOrderDto) {
     return this.ordersService.createOrder(user.sub, dto);
   }
+
+  @Post(':id/stripe-checkout')
+  createStripeCheckout(
+    @GetUser() user: UserPayload,
+    @Param('id', ParseIntPipe) orderId: number,
+  ) {
+    return this.ordersService.createStripeCheckout(user.sub, orderId);
+  }
 }

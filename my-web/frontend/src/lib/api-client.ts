@@ -1,8 +1,8 @@
 /**
  * Centralized HTTP client for the NestJS API.
  * Supports two auth layers:
- *  1. Local JWT access token (for email/password-signed users, including admin)
- *  2. Clerk session token (for Clerk-signed customers)
+ *  Admin endpoints prefer the local JWT; customer endpoints prefer the Clerk
+ *  session token, with local customer auth as a fallback.
  */
 
 const API_BASE_URL =
@@ -53,12 +53,19 @@ export async function apiClient<T>(
   };
 
   if (requiresAuth && !headers.Authorization) {
-    // 1. Check local JWT token first (synchronous, instant for Admin / local auth)
-    let token: string | null = localTokenGetter ? localTokenGetter() : null;
+    const isAdminEndpoint = endpoint === '/admin' || endpoint.startsWith('/admin/');
+    let token: string | null = null;
 
-    // 2. If no local token, fetch Clerk session token (for customers logged in via Clerk)
-    if (!token && clerkTokenGetter) {
-      token = await clerkTokenGetter();
+    if (isAdminEndpoint) {
+      token = localTokenGetter ? localTokenGetter() : null;
+      if (!token && clerkTokenGetter) {
+        token = await clerkTokenGetter();
+      }
+    } else {
+      token = clerkTokenGetter ? await clerkTokenGetter() : null;
+      if (!token && localTokenGetter) {
+        token = localTokenGetter();
+      }
     }
 
     if (token) {

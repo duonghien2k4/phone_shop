@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle2, Clock, XCircle, RefreshCw } from 'lucide-react';
+import { CreditCard, CheckCircle2, Clock, Copy, XCircle, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,15 @@ export const PaymentsTab: React.FC = () => {
     }
   };
 
+  const formatTransactionId = (createdAt: string, id: number) => {
+    const timestamp = new Date(createdAt).getTime();
+    return `TXN-${Number.isNaN(timestamp) ? Date.now() : timestamp}-${id}`;
+  };
+
+  const copyTransactionId = async (createdAt: string, id: number) => {
+    await navigator.clipboard.writeText(formatTransactionId(createdAt, id));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-200">
@@ -68,6 +77,7 @@ export const PaymentsTab: React.FC = () => {
             <option value="VNPAY">VNPay Gateway</option>
             <option value="MOMO">Ví MoMo</option>
             <option value="BANK_TRANSFER">Chuyển khoản VietQR</option>
+            <option value="STRIPE">Stripe</option>
             <option value="COD">Tiền mặt (COD)</option>
           </select>
 
@@ -122,7 +132,19 @@ export const PaymentsTab: React.FC = () => {
                 payments.map((pm) => (
                   <tr key={pm.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-3 px-4 font-mono font-bold text-slate-800">
-                      {pm.transactionId || `PAY-${pm.id}`}
+                      <div className="flex items-center gap-1.5 max-w-[230px]" title={pm.transactionId || undefined}>
+                        <span className="truncate">{formatTransactionId(pm.createdAt, pm.id)}</span>
+                        {pm.transactionId && (
+                          <button
+                            type="button"
+                            onClick={() => void copyTransactionId(pm.createdAt, pm.id)}
+                            className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                            aria-label="Sao chép mã giao dịch"
+                          >
+                            <Copy size={13} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 font-mono text-blue-600 font-bold">
                       #SOC-{pm.orderId.toString().padStart(4, '0')}
@@ -209,4 +231,3 @@ export const PaymentsTab: React.FC = () => {
     </div>
   );
 };
-

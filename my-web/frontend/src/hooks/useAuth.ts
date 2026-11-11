@@ -34,17 +34,7 @@ export function useAuth() {
 
   // Initialize and check current session
   const initializeAuth = useCallback(async () => {
-    if (isInitialized || !isClerkLoaded) return;
-
-    const localToken =
-      typeof window !== 'undefined'
-        ? window.localStorage.getItem('phoneshop-access-token')
-        : null;
-
-    if (!localToken && !isClerkSignedIn) {
-      setInitialized(true);
-      return;
-    }
+    if (isInitialized) return;
 
     try {
       const profile = await authService.getProfile();
@@ -56,7 +46,7 @@ export function useAuth() {
     } finally {
       setInitialized(true);
     }
-  }, [isInitialized, isClerkLoaded, isClerkSignedIn, setUser, setInitialized]);
+  }, [isInitialized, setUser, setInitialized]);
 
   // Run initialization once on app load
   useEffect(() => {

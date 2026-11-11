@@ -12,7 +12,9 @@ export function useRequireClerkAuth(): boolean {
   const pathname = usePathname();
 
   const isLoaded = isClerkLoaded && isInternalLoaded;
-  const isSignedIn = Boolean(isClerkSignedIn || internalUser);
+  const isSignedIn = Boolean(
+    isClerkSignedIn || internalUser?.role === 'CUSTOMER',
+  );
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {

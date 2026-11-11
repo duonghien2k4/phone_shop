@@ -16,6 +16,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
+import { publicVariantSelect } from '../products/public-variant.select';
 import {
   CancelApplicationDto,
   CreateInstallmentApplicationDto,
@@ -238,7 +239,7 @@ export class InstallmentService {
       include: {
         brand: true,
         category: true,
-        variants: true,
+        variants: { select: publicVariantSelect },
         images: true,
       },
       orderBy: [{ isFeatured: 'desc' }, { rating: 'desc' }],

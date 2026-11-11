@@ -8,6 +8,22 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import Stripe from 'stripe';
+
+const customerOrderItemSelect = {
+  id: true,
+  orderId: true,
+  productId: true,
+  variantId: true,
+  productName: true,
+  color: true,
+  storage: true,
+  imageUrl: true,
+  quantity: true,
+  unitPrice: true,
+  total: true,
+  createdAt: true,
+} satisfies Prisma.OrderItemSelect;
 
 export interface OrderItemPayload {
   productId: number;
@@ -29,11 +45,101 @@ export class OrdersService {
     private readonly configService: ConfigService,
   ) {}
 
+  private getStripe(): Stripe {
+    const secretKey = this.configService.get<string>('stripe.secretKey');
+    if (!secretKey) {
+      throw new BadRequestException('Stripe chưa được cấu hình trên backend');
+    }
+    return new Stripe(secretKey);
+  }
+
+  async createStripeCheckout(userId: number, orderId: number) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { items: true, payment: true },
+    });
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+    if (order.paymentStatus === 'PAID') {
+      throw new BadRequestException('Đơn hàng đã được thanh toán');
+    }
+
+    const stripe = this.getStripe();
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: order.items.map((item) => ({
+        price_data: {
+          currency: 'vnd',
+          product_data: { name: `${item.productName} - ${item.storage} ${item.color}` },
+          unit_amount: Math.round(Number(item.unitPrice)),
+        },
+        quantity: item.quantity,
+      })),
+      customer_email: (await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email,
+      success_url: `${this.configService.get<string>('frontendUrl')}/orders/${order.id}?payment=success`,
+      cancel_url: `${this.configService.get<string>('frontendUrl')}/checkout?payment=cancelled`,
+      metadata: { orderId: String(order.id) },
+    });
+
+    await this.prisma.payment.upsert({
+      where: { orderId: order.id },
+      create: {
+        orderId: order.id,
+        method: 'STRIPE',
+        status: 'PENDING',
+        amount: order.total,
+        transactionId: session.id,
+        gatewayData: { checkoutSessionId: session.id },
+      },
+      update: {
+        method: 'STRIPE',
+        transactionId: session.id,
+        gatewayData: { checkoutSessionId: session.id },
+      },
+    });
+    return { checkoutUrl: session.url };
+  }
+
+  async handleStripeWebhook(signature: string | undefined, rawBody?: Buffer) {
+    const webhookSecret = this.configService.get<string>('stripe.webhookSecret');
+    if (!signature || !rawBody || !webhookSecret) {
+      throw new BadRequestException('Stripe webhook chưa được cấu hình đầy đủ');
+    }
+    const stripe = this.getStripe();
+    const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderId = Number(session.metadata?.orderId);
+      if (Number.isInteger(orderId)) {
+        await this.prisma.$transaction([
+          this.prisma.payment.updateMany({
+            where: { orderId },
+            data: { status: 'PAID', paidAt: new Date(), gatewayData: session as unknown as object },
+          }),
+          this.prisma.order.update({
+            where: { id: orderId },
+            data: { paymentStatus: 'PAID' },
+          }),
+        ]);
+      }
+    }
+    if (event.type === 'checkout.session.expired') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderId = Number(session.metadata?.orderId);
+      if (Number.isInteger(orderId)) {
+        await this.prisma.payment.updateMany({
+          where: { orderId },
+          data: { status: 'FAILED', gatewayData: session as unknown as object },
+        });
+      }
+    }
+    return { received: true };
+  }
+
   async findMyOrders(userId: number) {
     return this.prisma.order.findMany({
       where: { userId },
       include: {
-        items: true,
+        items: { select: customerOrderItemSelect },
         payment: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -44,7 +150,7 @@ export class OrdersService {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
       include: {
-        items: true,
+        items: { select: customerOrderItemSelect },
         payment: true,
       },
     });
@@ -83,35 +189,28 @@ export class OrdersService {
         throw new BadRequestException('Không có sản phẩm nào được chọn để thanh toán');
       }
 
-      // Check and atomically decrement inventory to avoid race conditions
+      // Reserve stock atomically so concurrent orders cannot oversell.
       for (const item of targetItems) {
-        const updateResult = await transaction.inventory.updateMany({
-          where: {
-            variantId: item.variantId,
-            stock: { gte: item.quantity },
-          },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
+        const updateResult = await transaction.$executeRaw`
+          UPDATE "inventories"
+          SET
+            "reserved" = "reserved" + ${item.quantity},
+            "status" = CASE
+              WHEN "stock" - ("reserved" + ${item.quantity}) <= 0 THEN 'OUT_OF_STOCK'::"StockStatus"
+              WHEN "stock" - ("reserved" + ${item.quantity}) <= 5 THEN 'LOW_STOCK'::"StockStatus"
+              ELSE 'IN_STOCK'::"StockStatus"
+            END,
+            "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "variantId" = ${item.variantId}
+            AND "stock" - "reserved" >= ${item.quantity}
+        `;
 
-        if (updateResult.count === 0) {
+        if (updateResult === 0) {
           const itemName = `${item.variant.product.name} (${item.variant.storage || ''} ${item.variant.color || ''})`.trim();
           throw new BadRequestException(
             `Sản phẩm "${itemName}" đã hết hàng hoặc không đủ số lượng trong kho.`,
           );
         }
-
-        // If stock is now 0 or less, update status to OUT_OF_STOCK
-        await transaction.inventory.updateMany({
-          where: {
-            variantId: item.variantId,
-            stock: { lte: 0 },
-          },
-          data: {
-            status: 'OUT_OF_STOCK',
-          },
-        });
       }
 
       const subtotal = targetItems.reduce(
@@ -189,6 +288,7 @@ export class OrdersService {
         data: {
           userId,
           status: 'PENDING',
+          inventoryAllocationStatus: 'RESERVED',
           subtotal: subtotal.toString(),
           shippingFee: shippingFee.toString(),
           discount: discount.toString(),
@@ -210,12 +310,13 @@ export class OrdersService {
                 imageUrl: item.variant.imageUrl,
                 quantity: item.quantity,
                 unitPrice: unitPrice.toString(),
+                unitCostSnapshot: item.variant.purchasePrice?.toString() ?? null,
                 total: (unitPrice * item.quantity).toString(),
               };
             }),
           },
         },
-        include: { items: true },
+        include: { items: { select: customerOrderItemSelect } },
       });
 
       // Only delete purchased items from the cart
@@ -260,7 +361,9 @@ export class OrdersService {
   private async sendOrderConfirmationEmail(
     email: string,
     profileName: string | null | undefined,
-    order: Prisma.OrderGetPayload<{ include: { items: true } }>,
+    order: Prisma.OrderGetPayload<{
+      include: { items: { select: typeof customerOrderItemSelect } };
+    }>,
   ): Promise<void> {
     const serviceId = this.configService.get<string>('emailjs.serviceId');
     const templateId = this.configService.get<string>(

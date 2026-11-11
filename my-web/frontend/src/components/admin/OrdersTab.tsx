@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Eye, CheckCircle2, Clock, Truck, XCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Eye, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [statusFilter, setStatusFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const currentPageRef = useRef(1);
 
   // Detail Modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -26,8 +28,10 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
   const [newStatus, setNewStatus] = useState('');
   const [newPaymentStatus, setNewPaymentStatus] = useState('');
 
-  const loadOrders = async (page = 1) => {
+  const loadOrders = useCallback(async (page = 1) => {
     setIsLoading(true);
+    setLoadError('');
+    currentPageRef.current = page;
     try {
       const res = await adminService.getOrders({
         page,
@@ -39,14 +43,24 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
       setPagination(res.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
     } catch (err) {
       console.error(err);
+      setLoadError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn hàng.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
-    void loadOrders(1);
-  }, [searchQuery, statusFilter]);
+    const initialLoadId = window.setTimeout(() => {
+      void loadOrders(1);
+    }, 0);
+    const intervalId = window.setInterval(() => {
+      void loadOrders(currentPageRef.current);
+    }, 30_000);
+    return () => {
+      window.clearTimeout(initialLoadId);
+      window.clearInterval(intervalId);
+    };
+  }, [loadOrders]);
 
   const handleOpenDetail = (order: any) => {
     setSelectedOrder(order);
@@ -75,6 +89,17 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
             Duyệt đơn, thay đổi trạng thái giao hàng và xử lý thanh toán cho khách hàng Sóc Mobile.
           </p>
         </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => void loadOrders(pagination.page)}
+          disabled={isLoading}
+          className="gap-2 self-start sm:self-auto"
+        >
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          Làm mới
+        </Button>
       </div>
 
       {/* Filter Row */}
@@ -99,6 +124,12 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
           Tổng đơn hàng: <strong className="text-slate-800">{pagination.total}</strong>
         </span>
       </div>
+
+      {loadError && (
+        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
+          Không thể tải danh sách đơn hàng: {loadError}
+        </p>
+      )}
 
       {/* Orders Table */}
       <Card className="border-slate-200 shadow-xs overflow-hidden">
@@ -125,8 +156,8 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400 italic">
-                    Không tìm thấy đơn hàng nào.
+                  <td colSpan={8} className={`py-10 text-center italic ${loadError ? 'text-rose-600' : 'text-slate-400'}`}>
+                    {loadError || 'Không tìm thấy đơn hàng nào.'}
                   </td>
                 </tr>
               ) : (
@@ -290,6 +321,10 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
 
           {/* Status Change Controls */}
           <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200 grid grid-cols-2 gap-4">
+            <p className="col-span-2 text-blue-800">
+              Đơn chờ xác nhận sẽ giữ hàng trong Reserved. Khi xác nhận, số lượng đó
+              được trừ khỏi tồn kho; hủy trước khi giao sẽ giải phóng hàng đang giữ.
+            </p>
             <div>
               <label className="font-bold text-slate-800 block mb-1">Cập nhật tiến độ đơn:</label>
               <select
@@ -336,4 +371,3 @@ export const OrdersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) =>
     </div>
   );
 };
-

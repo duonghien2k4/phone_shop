@@ -22,6 +22,14 @@ export class CloudinaryUploadService {
   constructor(private readonly configService: ConfigService) {}
 
   async uploadProductImage(file: UploadedImageFile): Promise<{ url: string }> {
+    return this.uploadImage(file, 'phoneshop/products');
+  }
+
+  async uploadReceiptImage(file: UploadedImageFile): Promise<{ url: string }> {
+    return this.uploadImage(file, 'phoneshop/stock-receipts');
+  }
+
+  private async uploadImage(file: UploadedImageFile, folder: string): Promise<{ url: string }> {
     if (!file.mimetype.startsWith('image/')) {
       throw new UnsupportedMediaTypeException('Chỉ chấp nhận tệp hình ảnh');
     }
@@ -37,7 +45,6 @@ export class CloudinaryUploadService {
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = 'phoneshop/products';
     const signaturePayload = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
     const signature = createHash('sha1')
       .update(signaturePayload)

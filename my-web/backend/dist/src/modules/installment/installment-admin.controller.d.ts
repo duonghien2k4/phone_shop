@@ -124,6 +124,7 @@ export declare class InstallmentAdminController {
                 productName: string;
                 quantity: number;
                 unitPrice: import("@prisma/client-runtime-utils").Decimal;
+                unitCostSnapshot: import("@prisma/client-runtime-utils").Decimal | null;
                 variantId: number;
                 orderId: number;
             }[];
@@ -133,6 +134,7 @@ export declare class InstallmentAdminController {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client-runtime-utils").Decimal;
+            inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
             subtotal: import("@prisma/client-runtime-utils").Decimal;
             shippingFee: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
@@ -516,6 +518,7 @@ export declare class InstallmentAdminController {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client-runtime-utils").Decimal;
+            inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
             subtotal: import("@prisma/client-runtime-utils").Decimal;
             shippingFee: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;

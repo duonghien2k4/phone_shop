@@ -47,6 +47,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const node_crypto_1 = require("node:crypto");
 const prisma_service_1 = require("../../database/prisma.service");
+const public_variant_select_1 = require("../products/public-variant.select");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 let InstallmentService = class InstallmentService {
@@ -199,7 +200,7 @@ let InstallmentService = class InstallmentService {
             include: {
                 brand: true,
                 category: true,
-                variants: true,
+                variants: { select: public_variant_select_1.publicVariantSelect },
                 images: true,
             },
             orderBy: [{ isFeatured: 'desc' }, { rating: 'desc' }],

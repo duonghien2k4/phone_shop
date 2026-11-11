@@ -45,7 +45,8 @@ let CartService = class CartService {
             imageUrl: item.variant.imageUrl || item.variant.product.image,
             price: Number(item.variant.price),
             quantity: item.quantity,
-            stock: item.variant.inventory?.stock ?? 0,
+            stock: Math.max(0, (item.variant.inventory?.stock ?? 0) -
+                (item.variant.inventory?.reserved ?? 0)),
         }));
     }
     async addItem(userId, dto) {
@@ -62,8 +63,8 @@ let CartService = class CartService {
         if (!variant) {
             throw new common_1.NotFoundException('Sản phẩm không tồn tại');
         }
-        const availableStock = variant.inventory?.stock ?? 0;
-        if (availableStock <= 0 || variant.inventory?.status === 'OUT_OF_STOCK') {
+        const availableStock = Math.max(0, (variant.inventory?.stock ?? 0) - (variant.inventory?.reserved ?? 0));
+        if (availableStock <= 0) {
             throw new common_1.BadRequestException('Sản phẩm này hiện đã hết hàng');
         }
         const cart = await this.prisma.cart.upsert({
@@ -107,8 +108,11 @@ let CartService = class CartService {
         const inventory = await this.prisma.inventory.findUnique({
             where: { variantId },
         });
-        if (inventory && dto.quantity > inventory.stock) {
-            throw new common_1.BadRequestException(`Chỉ còn ${inventory.stock} sản phẩm trong kho`);
+        const availableStock = inventory
+            ? Math.max(0, inventory.stock - inventory.reserved)
+            : 0;
+        if (inventory && dto.quantity > availableStock) {
+            throw new common_1.BadRequestException(`Chỉ còn ${availableStock} sản phẩm trong kho`);
         }
         const cart = await this.prisma.cart.findUnique({
             where: { userId },

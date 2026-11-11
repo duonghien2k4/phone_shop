@@ -147,7 +147,7 @@ export default function AdminPage() {
 
             {/* B. KINH DOANH */}
             {currentTab === 'products' && (
-              <ProductsTab searchQuery={searchQuery} />
+              <ProductsTab searchQuery={searchQuery} onSearchChange={setSearchQuery} />
             )}
 
             {currentTab === 'brands_categories' && (
@@ -155,7 +155,7 @@ export default function AdminPage() {
             )}
 
             {currentTab === 'inventory' && (
-              <InventoryTab searchQuery={searchQuery} />
+              <InventoryTab searchQuery={searchQuery} onSearchChange={setSearchQuery} />
             )}
 
             {currentTab === 'orders' && (

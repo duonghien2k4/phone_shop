@@ -21,12 +21,9 @@ import {
   Navigation,
   RefreshCw,
   Loader2,
-  LogOut,
   History
 } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
-import { useAuthStore } from '@/store/useAuthStore';
 import { LABELS } from '@/constants/labels';
 import { APP_CONFIG } from '@/constants/config';
 import { CITY_COORDINATES, getNearestCity } from '@/utils/locationUtils';
@@ -67,10 +64,7 @@ function loadSearchHistory(): string[] {
 export default function Header() {
   const router = useRouter();
   const { totalItems } = useCart();
-  const { logout } = useAuth();
   const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
-  const user = useAuthStore((state) => state.user);
-  const isAdminUser = Boolean(user && (user.role === 'ADMIN' || user.role === 'STAFF'));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<string[]>(loadSearchHistory);
@@ -79,11 +73,9 @@ export default function Header() {
   const [nearestStore, setNearestStore] = useState('123 Nguyen Trai, Q.1');
   const [isLocating, setIsLocating] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const detectGPSLocation = useCallback((showToast = true) => {
     if (!navigator.geolocation) {
@@ -161,9 +153,6 @@ export default function Header() {
       }
       if (locationRef.current && !locationRef.current.contains(event.target as Node)) {
         setShowLocationDropdown(false);
-      }
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -431,84 +420,33 @@ export default function Header() {
           </Link>
 
           {/* User Account / Login */}
-          <div className="header-user-account" ref={userMenuRef}>
-            {isAdminUser ? (
-              <>
-                <button
-                  type="button"
-                  className="user-profile-trigger"
-                  onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  aria-label="Menu quan tri"
-                >
-                  <div className="avatar-placeholder">
-                    {(user?.fullName || user?.email || 'A')[0].toUpperCase()}
-                  </div>
-                  <span className="user-name-text">{user?.fullName || user?.email}</span>
-                  <ChevronDown size={14} className="chevron-icon" />
-                </button>
-
-                {showUserDropdown && (
-                  <div className="user-dropdown-menu">
-                    <div className="dropdown-user-info">
-                      <span className="dropdown-user-name" style={{ fontWeight: 'bold', color: '#1e293b' }}>
-                        {user?.fullName || 'Quan tri vien'}
-                      </span>
-                      <span className="dropdown-user-email">{user?.email}</span>
-                    </div>
-
-                    <Link
-                      href="/orders"
-                      className="dropdown-item"
-                      onClick={() => setShowUserDropdown(false)}
-                    >
-                      <FileText size={16} />
-                      <span>Đơn hàng của tôi</span>
-                    </Link>
-
-                    <div className="dropdown-divider" />
-
-                    <button
-                      type="button"
-                      className="dropdown-item logout-btn"
-                      onClick={async () => {
-                        setShowUserDropdown(false);
-                        await logout();
-                      }}
-                    >
-                      <LogOut size={16} />
-                      <span>Đăng xuất</span>
+          <div className="header-user-account">
+            {isClerkLoaded ? (
+              isSignedIn ? (
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: 'w-8 h-8',
+                    },
+                  }}
+                />
+              ) : (
+                <div className="header-auth-actions">
+                  <SignInButton mode="modal">
+                    <button type="button" className="header-login-btn">
+                      <User size={18} />
+                      <span>Đăng nhập</span>
                     </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              isClerkLoaded ? (
-                isSignedIn ? (
-                  <UserButton
-                    appearance={{
-                      elements: {
-                        avatarBox: 'w-8 h-8',
-                      },
-                    }}
-                  />
-                ) : (
-                  <div className="header-auth-actions">
-                    <SignInButton mode="modal">
-                      <button type="button" className="header-login-btn">
-                        <User size={18} />
-                        <span>Đăng nhập</span>
-                      </button>
-                    </SignInButton>
-                    <SignUpButton mode="modal">
-                      <button type="button" className="header-login-btn header-signup-btn">
-                        <User size={18} />
-                        <span>Đăng ký</span>
-                      </button>
-                    </SignUpButton>
-                  </div>
-                )
-              ) : null
-            )}
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button type="button" className="header-login-btn header-signup-btn">
+                      <User size={18} />
+                      <span>Đăng ký</span>
+                    </button>
+                  </SignUpButton>
+                </div>
+              )
+            ) : null}
           </div>
 
         </div>

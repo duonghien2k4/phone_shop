@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
+import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, QrCode, Banknote, Loader2, Store, Truck } from 'lucide-react';
@@ -18,7 +18,6 @@ import Header from '@/components/base/Header';
 import Footer from '@/components/base/Footer';
 import SafeImage from '@/components/base/SafeImage';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
 import { ordersService, toOrderPaymentMethod } from '@/services/orders.service';
 import { formatVND } from '@/utils/format';
 import { LABELS } from '@/constants/labels';
@@ -28,6 +27,8 @@ import { CITY_COORDINATES } from '@/utils/locationUtils';
 import { Order, FulfillmentMode, PaymentMethodType } from '@/types/order';
 import VietQrModal from '@/components/features/checkout/VietQrModal';
 import { useRequireClerkAuth } from '@/hooks/useRequireClerkAuth';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'Hải Phòng'];
 
@@ -36,9 +37,10 @@ const CITIES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ', 'H�
  * ============================================================================ */
 function CheckoutForm() {
   const canRender = useRequireClerkAuth();
+  const { isSignedIn: isClerkSignedIn, getToken } = useClerkAuth();
+  const internalUser = useAuthStore((state) => state.user);
   const searchParams = useSearchParams();
   const { items, removeFromCart, clearCart } = useCart();
-  const { user } = useAuth();
 
   const fulfillmentFromUrl = searchParams.get('fulfillment') === 'STORE_PICKUP' ? 'STORE_PICKUP' : 'HOME_DELIVERY';
   const voucherCode = searchParams.get('voucher') || '';
@@ -160,28 +162,42 @@ function CheckoutForm() {
     };
 
     try {
-      if (user) {
-        await ordersService.create({
-          variantIds: checkoutItems.map((item) => item.variantId),
-          shippingFee,
-          discount,
-          voucherCode: voucherCode || null,
-          note: fulfillmentMode === 'STORE_PICKUP'
-            ? `Hẹn đến Showroom: ${appointmentTime}`
-            : 'Đơn hàng mới từ website',
-          paymentMethod: toOrderPaymentMethod(paymentMethod),
-          shippingAddress: {
-            name: fullName,
-            phone,
-            address: fulfillmentMode === 'STORE_PICKUP'
-              ? selectedStore
-              : address,
-            city,
-            fulfillmentMode,
-            storeAddress: fulfillmentMode === 'STORE_PICKUP' ? selectedStore : undefined,
-            appointmentTime: fulfillmentMode === 'STORE_PICKUP' ? appointmentTime : undefined,
-          },
-        });
+      const accessToken = isClerkSignedIn
+        ? await getToken()
+        : internalUser?.role === 'CUSTOMER'
+          ? window.localStorage.getItem('phoneshop-access-token')
+          : null;
+
+      if (!accessToken) {
+        throw new Error('Không tìm thấy phiên đăng nhập khách hàng. Vui lòng đăng nhập lại.');
+      }
+
+      const createdOrder = await ordersService.create({
+        variantIds: checkoutItems.map((item) => item.variantId),
+        shippingFee,
+        discount,
+        voucherCode: voucherCode || null,
+        note: fulfillmentMode === 'STORE_PICKUP'
+          ? `Hẹn đến Showroom: ${appointmentTime}`
+          : 'Đơn hàng mới từ website',
+        paymentMethod: toOrderPaymentMethod(paymentMethod),
+        shippingAddress: {
+          name: fullName,
+          phone,
+          address: fulfillmentMode === 'STORE_PICKUP'
+            ? selectedStore
+            : address,
+          city,
+          fulfillmentMode,
+          storeAddress: fulfillmentMode === 'STORE_PICKUP' ? selectedStore : undefined,
+          appointmentTime: fulfillmentMode === 'STORE_PICKUP' ? appointmentTime : undefined,
+        },
+      }, accessToken);
+      if (paymentMethod === 'STRIPE') {
+        const checkout = await ordersService.createStripeCheckout(createdOrder.id, accessToken);
+        if (!checkout.checkoutUrl) throw new Error('Stripe không trả về đường dẫn thanh toán');
+        window.location.assign(checkout.checkoutUrl);
+        return;
       }
     } catch (e) {
       console.error('Failed to create order:', e);
@@ -210,7 +226,7 @@ function CheckoutForm() {
       clearCart();
     }
     toast.success(isDeposit ? 'Đã ghi nhận đơn hàng, đang chờ xác nhận thanh toán.' : 'Đơn hàng đã được đặt thành công!');
-  }, [clearCart, removeFromCart, selectedVariantIds, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, checkoutItems, user]);
+  }, [clearCart, removeFromCart, selectedVariantIds, generatedOrderCode, fullName, phone, address, city, paymentMethod, fulfillmentMode, selectedStore, appointmentTime, depositAmount, remainingAmount, finalTotal, shippingFee, discount, voucherCode, checkoutItems, isClerkSignedIn, getToken, internalUser]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -566,6 +582,22 @@ function CheckoutForm() {
                   <span className="payment-method-desc">Quét mã chuyển khoản nhanh MB Bank siêu tiện lợi.</span>
                 </div>
               </div>
+
+              <div
+                className={`payment-method-option ${paymentMethod === 'STRIPE' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('STRIPE')}
+              >
+                <input
+                  type="radio"
+                  className="payment-method-radio"
+                  checked={paymentMethod === 'STRIPE'}
+                  onChange={() => setPaymentMethod('STRIPE')}
+                />
+                <div className="payment-method-info">
+                  <span className="payment-method-name">Thanh toán bằng thẻ qua Stripe</span>
+                  <span className="payment-method-desc">Chuyển tới Stripe Checkout để thanh toán bằng thẻ test.</span>
+                </div>
+              </div>
             </>
           )}
 
@@ -583,6 +615,8 @@ function CheckoutForm() {
             </span>
           ) : paymentMethod === 'DEPOSIT_5' ? (
             `Xác nhận Đặt cọc 5% (${formatVND(depositAmount)})`
+          ) : paymentMethod === 'STRIPE' ? (
+            'Thanh toán qua Stripe'
           ) : (
             LABELS.CHECKOUT.PLACE_ORDER_BTN
           )}

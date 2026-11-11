@@ -63,7 +63,14 @@ async function bootstrap() {
     app.use((0, helmet_1.default)({
         crossOriginResourcePolicy: { policy: 'cross-origin' },
     }));
-    app.use(express.json({ limit: '20mb' }));
+    app.use(express.json({
+        limit: '20mb',
+        verify: (request, _response, buffer) => {
+            if (request.originalUrl === '/api/payments/stripe/webhook') {
+                request.rawBody = Buffer.from(buffer);
+            }
+        },
+    }));
     app.use(express.urlencoded({ limit: '20mb', extended: true }));
     app.use('/uploads', express.static((0, path_1.join)(process.cwd(), 'uploads')));
     app.enableCors({

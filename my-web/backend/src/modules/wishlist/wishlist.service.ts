@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { publicVariantSelect } from '../products/public-variant.select';
 
 const productInclude = {
   brand: true,
   category: true,
   images: { orderBy: { sortOrder: 'asc' as const } },
-  variants: { include: { inventory: true } },
+  variants: { select: publicVariantSelect },
 };
 
 @Injectable()
@@ -131,4 +132,3 @@ export class WishlistService {
     };
   }
 }
-

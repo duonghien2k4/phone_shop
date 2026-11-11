@@ -11,12 +11,16 @@ const common_1 = require("@nestjs/common");
 const orders_controller_1 = require("./orders.controller");
 const orders_service_1 = require("./orders.service");
 const clerk_auth_guard_1 = require("../../common/guards/clerk-auth.guard");
+const database_module_1 = require("../../database/database.module");
+const config_1 = require("@nestjs/config");
+const stripe_webhook_controller_1 = require("./stripe-webhook.controller");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
 exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
-        controllers: [orders_controller_1.OrdersController],
+        imports: [database_module_1.DatabaseModule, config_1.ConfigModule],
+        controllers: [orders_controller_1.OrdersController, stripe_webhook_controller_1.StripeWebhookController],
         providers: [orders_service_1.OrdersService, clerk_auth_guard_1.ClerkAuthGuard],
         exports: [orders_service_1.OrdersService],
     })

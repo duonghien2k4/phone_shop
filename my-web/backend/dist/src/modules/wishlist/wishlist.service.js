@@ -12,11 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WishlistService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../database/prisma.service");
+const public_variant_select_1 = require("../products/public-variant.select");
 const productInclude = {
     brand: true,
     category: true,
     images: { orderBy: { sortOrder: 'asc' } },
-    variants: { include: { inventory: true } },
+    variants: { select: public_variant_select_1.publicVariantSelect },
 };
 let WishlistService = class WishlistService {
     prisma;

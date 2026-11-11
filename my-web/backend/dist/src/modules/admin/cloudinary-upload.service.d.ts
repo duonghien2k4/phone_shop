@@ -10,4 +10,8 @@ export declare class CloudinaryUploadService {
     uploadProductImage(file: UploadedImageFile): Promise<{
         url: string;
     }>;
+    uploadReceiptImage(file: UploadedImageFile): Promise<{
+        url: string;
+    }>;
+    private uploadImage;
 }

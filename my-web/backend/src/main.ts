@@ -42,7 +42,14 @@ async function bootstrap(): Promise<void> {
   );
 
   // Large payload for image upload/signature base64
-  app.use(express.json({ limit: '20mb' }));
+  app.use(express.json({
+    limit: '20mb',
+    verify: (request: express.Request & { rawBody?: Buffer }, _response, buffer) => {
+      if (request.originalUrl === '/api/payments/stripe/webhook') {
+        request.rawBody = Buffer.from(buffer);
+      }
+    },
+  }));
   app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
   // Static files for uploaded documents

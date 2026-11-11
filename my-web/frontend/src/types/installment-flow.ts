@@ -41,7 +41,7 @@ export interface CustomerKycInfo {
   fullName: string;
   cccdNumber: string;
   dob: string;
-  gender: 'Nam' | 'Nữ';
+  gender: 'Nam' | 'Nữ' | '';
   phone: string;
   email: string;
   permanentAddress: string;
@@ -84,4 +84,3 @@ export interface LoanCalculation {
   differenceAmount: number;
   schedule: PaymentScheduleItem[];
 }
-

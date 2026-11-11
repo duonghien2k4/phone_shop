@@ -14,6 +14,11 @@ export declare const appConfig: () => {
         secretKey: string;
         jwtKey: string;
     };
+    stripe: {
+        secretKey: string;
+        publishableKey: string;
+        webhookSecret: string;
+    };
     redis: {
         host: string;
         port: number;

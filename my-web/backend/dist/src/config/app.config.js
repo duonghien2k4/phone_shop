@@ -17,6 +17,11 @@ const appConfig = () => ({
         secretKey: process.env.CLERK_SECRET_KEY ?? '',
         jwtKey: process.env.CLERK_JWT_KEY ?? '',
     },
+    stripe: {
+        secretKey: process.env.SECRET_STRIPE_KEY ?? '',
+        publishableKey: process.env.PUBLISHABLE_STRIPE_KEY ?? '',
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+    },
     redis: {
         host: process.env.REDIS_HOST ?? 'localhost',
         port: parseInt(process.env.REDIS_PORT ?? '6379', 10),

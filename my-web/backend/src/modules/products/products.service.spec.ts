@@ -1,5 +1,6 @@
 import { PrismaService } from '../../database/prisma.service';
 import { ProductsService } from './products.service';
+import { ListProductsDto } from './dto/list-products.dto';
 
 describe('ProductsService reviews', () => {
   const prisma = {
@@ -15,6 +16,23 @@ describe('ProductsService reviews', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('does not include variant purchase costs in public product responses', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const productPrisma = {
+      product: {
+        findMany,
+        count: jest.fn().mockResolvedValue(0),
+      },
+    } as unknown as PrismaService;
+    const productsService = new ProductsService(productPrisma);
+
+    await productsService.findAll(new ListProductsDto());
+
+    expect(findMany.mock.calls[0][0].include.variants.select).not.toHaveProperty(
+      'purchasePrice',
+    );
   });
 
   it('allows a customer to review a product after placing a pending order', async () => {

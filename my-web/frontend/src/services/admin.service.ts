@@ -1,6 +1,7 @@
 import { api } from '@/lib/api-client';
 
 export interface DashboardData {
+  year: number;
   overview: {
     totalRevenue: number;
     totalOrders: number;
@@ -8,10 +9,43 @@ export interface DashboardData {
     totalProducts: number;
     lowStockVariants: number;
     totalCustomers: number;
+    completedOrders: number;
+    inventoryTotalVariants: number;
+    inventoryHealthyVariants: number;
+    yearToDateRevenue: number;
+    yearToDateGrossProfit: number;
+    yearToDateGrossMargin: number;
+    yearToDatePaidOrders: number;
+    yearToDatePaidOrdersWithCost: number;
+    yearToDatePaidOrdersMissingCost: number;
   };
-  recentOrders: any[];
-  popularItems: any[];
-  monthlyData: { month: string; revenue: number; orders: number }[];
+  recentOrders: {
+    id: number;
+    shippingAddress?: { name?: string; phone?: string } | null;
+    user?: {
+      profile?: { fullName?: string | null } | null;
+      email?: string | null;
+    } | null;
+    items?: { productName: string }[];
+    total: number | string;
+    paymentMethod: string;
+    status: string;
+  }[];
+  popularItems: {
+    productName: string;
+    _sum: { quantity: number | null; total: number | null };
+  }[];
+  monthlyData: {
+    month: string;
+    revenue: number;
+    grossProfit: number;
+    orders: number;
+  }[];
+  paymentMethodData: {
+    paymentMethod: string;
+    revenue: number;
+    orders: number;
+  }[];
 }
 
 export const adminService = {
@@ -105,9 +139,22 @@ export const adminService = {
     return api.get<any>(`/admin/inventory?${q.toString()}`, { skipAuth: true });
   },
 
-  updateInventoryStock: async (id: number, stock: number, reserved?: number) => {
-    return api.patch<any>(`/admin/inventory/${id}`, { stock, reserved }, { skipAuth: true });
+  updateInventoryStock: async (id: number, stock: number) => {
+    return api.patch<any>(`/admin/inventory/${id}`, { stock }, { skipAuth: true });
   },
+
+  uploadReceiptImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string }>('/admin/inventory/receipts/images/upload', formData);
+  },
+
+  createStockReceipt: async (data: {
+    supplier?: string;
+    billImageUrl?: string;
+    ocrText?: string;
+    items: { variantId: number; quantity: number; unitCost: number }[];
+  }) => api.post<any>('/admin/inventory/receipts', data),
 
   // 4. Đơn hàng
   getOrders: async (params: { page?: number; limit?: number; search?: string; status?: string }) => {

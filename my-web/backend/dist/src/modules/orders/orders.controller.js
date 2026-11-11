@@ -32,6 +32,9 @@ let OrdersController = class OrdersController {
     createOrder(user, dto) {
         return this.ordersService.createOrder(user.sub, dto);
     }
+    createStripeCheckout(user, orderId) {
+        return this.ordersService.createStripeCheckout(user.sub, orderId);
+    }
 };
 exports.OrdersController = OrdersController;
 __decorate([
@@ -57,6 +60,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, create_order_dto_1.CreateOrderDto]),
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "createOrder", null);
+__decorate([
+    (0, common_1.Post)(':id/stripe-checkout'),
+    __param(0, (0, get_user_decorator_1.GetUser)()),
+    __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Number]),
+    __metadata("design:returntype", void 0)
+], OrdersController.prototype, "createStripeCheckout", null);
 exports.OrdersController = OrdersController = __decorate([
     (0, common_1.UseGuards)(clerk_auth_guard_1.ClerkAuthGuard),
     (0, common_1.Controller)('orders'),

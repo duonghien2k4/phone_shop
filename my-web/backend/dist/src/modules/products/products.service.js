@@ -13,11 +13,12 @@ exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../database/prisma.service");
+const public_variant_select_1 = require("./public-variant.select");
 const productInclude = {
     brand: true,
     category: true,
     images: { orderBy: { sortOrder: 'asc' } },
-    variants: { include: { inventory: true } },
+    variants: { select: public_variant_select_1.publicVariantSelect },
 };
 const reviewInclude = {
     user: {
@@ -112,7 +113,16 @@ let ProductsService = class ProductsService {
                         sku: variant.sku,
                         price: variant.price,
                         imageUrl: variant.imageUrl,
-                        inventory: { create: { stock: variant.stock ?? 0 } },
+                        inventory: {
+                            create: {
+                                stock: variant.stock ?? 0,
+                                status: (variant.stock ?? 0) <= 0
+                                    ? 'OUT_OF_STOCK'
+                                    : (variant.stock ?? 0) <= 5
+                                        ? 'LOW_STOCK'
+                                        : 'IN_STOCK',
+                            },
+                        },
                     })),
                 },
             },

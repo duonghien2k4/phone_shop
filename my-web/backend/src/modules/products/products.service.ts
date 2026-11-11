@@ -8,12 +8,13 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsDto } from './dto/list-products.dto';
+import { publicVariantSelect } from './public-variant.select';
 
 const productInclude = {
   brand: true,
   category: true,
   images: { orderBy: { sortOrder: 'asc' as const } },
-  variants: { include: { inventory: true } },
+  variants: { select: publicVariantSelect },
 };
 
 const reviewInclude = {
@@ -117,7 +118,17 @@ export class ProductsService {
             sku: variant.sku,
             price: variant.price,
             imageUrl: variant.imageUrl,
-            inventory: { create: { stock: variant.stock ?? 0 } },
+            inventory: {
+              create: {
+                stock: variant.stock ?? 0,
+                status:
+                  (variant.stock ?? 0) <= 0
+                    ? 'OUT_OF_STOCK'
+                    : (variant.stock ?? 0) <= 5
+                      ? 'LOW_STOCK'
+                      : 'IN_STOCK',
+              },
+            },
           })),
         },
       },

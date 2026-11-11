@@ -36,6 +36,12 @@ let AdminController = class AdminController {
         }
         return this.cloudinaryUploadService.uploadProductImage(file);
     }
+    uploadReceiptImage(file) {
+        if (!file) {
+            throw new common_1.BadRequestException('Vui lòng chọn ảnh bill để tải lên');
+        }
+        return this.cloudinaryUploadService.uploadReceiptImage(file);
+    }
     getProducts(page = '1', limit = '10', search = '', categoryId, brandId) {
         return this.adminService.getProducts(+page, +limit, search, categoryId ? +categoryId : undefined, brandId ? +brandId : undefined);
     }
@@ -85,7 +91,10 @@ let AdminController = class AdminController {
         return this.adminService.getInventory(+page, +limit, search, status);
     }
     updateInventoryStock(id, data) {
-        return this.adminService.updateInventoryStock(id, data.stock, data.reserved);
+        return this.adminService.updateInventoryStock(id, data.stock);
+    }
+    createStockReceipt(data) {
+        return this.adminService.createStockReceipt(data);
     }
     getOrders(page = '1', limit = '10', search = '', status = '') {
         return this.adminService.getOrders(+page, +limit, search, status);
@@ -181,6 +190,23 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "uploadProductImage", null);
+__decorate([
+    (0, common_1.Post)('inventory/receipts/images/upload'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_request, file, callback) => {
+            if (!file.mimetype.startsWith('image/')) {
+                callback(new common_1.BadRequestException('Chỉ chấp nhận tệp hình ảnh'), false);
+                return;
+            }
+            callback(null, true);
+        },
+    })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "uploadReceiptImage", null);
 __decorate([
     (0, common_1.Get)('products'),
     __param(0, (0, common_1.Query)('page')),
@@ -311,6 +337,13 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "updateInventoryStock", null);
+__decorate([
+    (0, common_1.Post)('inventory/receipts'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createStockReceipt", null);
 __decorate([
     (0, common_1.Get)('orders'),
     __param(0, (0, common_1.Query)('page')),

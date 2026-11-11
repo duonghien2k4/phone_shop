@@ -58,6 +58,26 @@ export class AdminController {
     return this.cloudinaryUploadService.uploadProductImage(file);
   }
 
+  @Post('inventory/receipts/images/upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_request, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          callback(new BadRequestException('Chỉ chấp nhận tệp hình ảnh'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  uploadReceiptImage(@UploadedFile() file?: UploadedImageFile) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng chọn ảnh bill để tải lên');
+    }
+    return this.cloudinaryUploadService.uploadReceiptImage(file);
+  }
+
   @Get('products')
   getProducts(
     @Query('page') page = '1',
@@ -153,8 +173,13 @@ export class AdminController {
   }
 
   @Patch('inventory/:id')
-  updateInventoryStock(@Param('id', ParseIntPipe) id: number, @Body() data: { stock: number; reserved?: number }) {
-    return this.adminService.updateInventoryStock(id, data.stock, data.reserved);
+  updateInventoryStock(@Param('id', ParseIntPipe) id: number, @Body() data: { stock: number }) {
+    return this.adminService.updateInventoryStock(id, data.stock);
+  }
+
+  @Post('inventory/receipts')
+  createStockReceipt(@Body() data: any) {
+    return this.adminService.createStockReceipt(data);
   }
 
   // 4. Đơn hàng

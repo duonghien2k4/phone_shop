@@ -70,6 +70,7 @@ export interface ProductApiItem {
     stock?: number | null;
     inventory?: {
       stock?: number | null;
+      reserved?: number | null;
       status?: string | null;
     } | null;
   }> | null;
@@ -139,7 +140,11 @@ export const normalizeProduct = (item: ProductApiItem): MockProduct => {
     ).map((variant, idx) => {
       const variantStock =
         variant.inventory?.stock !== undefined && variant.inventory?.stock !== null
-          ? Number(variant.inventory.stock)
+          ? Math.max(
+              0,
+              Number(variant.inventory.stock) -
+                Number(variant.inventory.reserved ?? 0),
+            )
           : variant.stock !== undefined && variant.stock !== null
             ? Number(variant.stock)
             : 10;
@@ -157,6 +162,7 @@ export const normalizeProduct = (item: ProductApiItem): MockProduct => {
         inventory: variant.inventory
           ? {
               stock: variantStock,
+              reserved: Number(variant.inventory.reserved ?? 0),
               status: variant.inventory.status || (variantStock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'),
             }
           : {

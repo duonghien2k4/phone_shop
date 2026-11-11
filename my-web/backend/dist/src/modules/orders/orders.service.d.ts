@@ -17,6 +17,13 @@ export declare class OrdersService {
     private readonly configService;
     private readonly logger;
     constructor(prisma: PrismaService, configService: ConfigService);
+    private getStripe;
+    createStripeCheckout(userId: number, orderId: number): Promise<{
+        checkoutUrl: string | null;
+    }>;
+    handleStripeWebhook(signature: string | undefined, rawBody?: Buffer): Promise<{
+        received: boolean;
+    }>;
     findMyOrders(userId: number): Promise<({
         items: {
             id: number;
@@ -50,6 +57,7 @@ export declare class OrdersService {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: Prisma.Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: Prisma.Decimal;
         shippingFee: Prisma.Decimal;
         total: Prisma.Decimal;
@@ -93,6 +101,7 @@ export declare class OrdersService {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: Prisma.Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: Prisma.Decimal;
         shippingFee: Prisma.Decimal;
         total: Prisma.Decimal;
@@ -124,6 +133,7 @@ export declare class OrdersService {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: Prisma.Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: Prisma.Decimal;
         shippingFee: Prisma.Decimal;
         total: Prisma.Decimal;

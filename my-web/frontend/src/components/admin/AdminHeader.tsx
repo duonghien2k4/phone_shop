@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  Search,
   Bell,
   ChevronRight,
   ShieldCheck,
@@ -51,29 +50,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           {tabLabel}
         </span>
       </div>
-
-      {/* Center: Global Search Entry Point */}
-      {/* <div className="flex-1 max-w-md relative hidden md:block">
-        <div className="relative flex items-center">
-          <Search size={15} className="absolute left-3.5 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={`Tìm kiếm nhanh trong ${tabLabel.toLowerCase()}...`}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 text-xs text-slate-400 hover:text-slate-600 px-1 py-0.5"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div> */}
 
       {/* Right: Actions, Notifications & Avatar Dropdown */}
       <div className="flex items-center gap-3">
@@ -167,4 +143,3 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     </header>
   );
 };
-

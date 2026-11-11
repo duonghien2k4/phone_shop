@@ -37,6 +37,7 @@ export declare class OrdersController {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client-runtime-utils").Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
         total: import("@prisma/client-runtime-utils").Decimal;
@@ -80,6 +81,7 @@ export declare class OrdersController {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client-runtime-utils").Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
         total: import("@prisma/client-runtime-utils").Decimal;
@@ -111,6 +113,7 @@ export declare class OrdersController {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client-runtime-utils").Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
         total: import("@prisma/client-runtime-utils").Decimal;
@@ -120,5 +123,8 @@ export declare class OrdersController {
         paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
         paymentStatus: import("@prisma/client").$Enums.PaymentStatus;
         userId: number;
+    }>;
+    createStripeCheckout(user: UserPayload, orderId: number): Promise<{
+        checkoutUrl: string | null;
     }>;
 }

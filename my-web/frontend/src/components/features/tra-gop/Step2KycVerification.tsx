@@ -22,6 +22,7 @@ import { useInstallmentFlowStore } from '@/store/useInstallmentFlowStore';
 import { formatVND, getShowrooms, getShowroomById } from '@/data/mock-installment-flow';
 import { toast } from '@/store/useToastStore';
 import { installmentService } from '@/services/installment.service';
+import { recognizeCccd } from '@/utils/cccd-ocr';
 
 export default function Step2KycVerification() {
   const {
@@ -44,6 +45,85 @@ export default function Step2KycVerification() {
   const backInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingFront, setIsUploadingFront] = useState(false);
   const [isUploadingBack, setIsUploadingBack] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+
+  const handleContinue = () => {
+    const requiredFields: Array<[string, string]> = [
+      ['Họ và tên', kycInfo.fullName],
+      ['Số CCCD', kycInfo.cccdNumber],
+      ['Ngày sinh', kycInfo.dob],
+      ['Giới tính', kycInfo.gender],
+      ['Số điện thoại liên hệ', kycInfo.phone],
+      ['Email', kycInfo.email],
+      ['Địa chỉ thường trú', kycInfo.permanentAddress],
+      ['Địa chỉ hiện tại', kycInfo.currentAddress],
+      ['Nghề nghiệp', kycInfo.jobTitle],
+      ['Thu nhập hàng tháng', kycInfo.monthlyIncome],
+      ['Công ty / cơ quan làm việc', kycInfo.companyName],
+      ['Mối quan hệ người tham chiếu', kycInfo.refRelation],
+      ['Họ tên người tham chiếu', kycInfo.refName],
+      ['Số điện thoại người tham chiếu', kycInfo.refPhone],
+    ];
+    const missingFields = requiredFields
+      .filter(([, value]) => !value.trim())
+      .map(([label]) => label);
+
+    if (!kycInfo.idCardFrontUrl) missingFields.push('Ảnh CCCD mặt trước');
+    if (!kycInfo.idCardBackUrl) missingFields.push('Ảnh CCCD mặt sau');
+    if (kycInfo.deliveryMethod === 'shop' && !kycInfo.pickupStoreId.trim()) {
+      missingFields.push('Chi nhánh nhận máy');
+    }
+
+    if (missingFields.length > 0) {
+      toast.error(`Vui lòng điền đầy đủ: ${missingFields.join(', ')}.`);
+      return;
+    }
+
+    if (!/^\d{12}$/.test(kycInfo.cccdNumber.trim())) {
+      toast.error('Số CCCD phải gồm đúng 12 chữ số.');
+      return;
+    }
+
+    const normalizedPhone = kycInfo.phone.replace(/[\s.-]/g, '');
+    if (!/^(?:0|\+84)\d{9}$/.test(normalizedPhone)) {
+      toast.error('Số điện thoại liên hệ phải gồm 10 số hợp lệ tại Việt Nam.');
+      return;
+    }
+
+    const normalizedReferencePhone = kycInfo.refPhone.replace(/[\s.-]/g, '');
+    if (!/^(?:0|\+84)\d{9}$/.test(normalizedReferencePhone)) {
+      toast.error('Số điện thoại người tham chiếu phải gồm 10 số hợp lệ tại Việt Nam.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(kycInfo.email.trim())) {
+      toast.error('Vui lòng nhập địa chỉ email hợp lệ để nhận mã OTP.');
+      return;
+    }
+
+    const dobMatch = kycInfo.dob.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!dobMatch) {
+      toast.error('Ngày sinh phải theo định dạng DD/MM/YYYY.');
+      return;
+    }
+    const [, day, month, year] = dobMatch;
+    const dateOfBirth = new Date(Number(year), Number(month) - 1, Number(day));
+    if (
+      dateOfBirth.getFullYear() !== Number(year) ||
+      dateOfBirth.getMonth() !== Number(month) - 1 ||
+      dateOfBirth.getDate() !== Number(day)
+    ) {
+      toast.error('Ngày sinh không hợp lệ.');
+      return;
+    }
+
+    if (!kycInfo.agreeConsent) {
+      toast.error('Vui lòng xác nhận đồng ý với điều khoản trước khi tiếp tục.');
+      return;
+    }
+
+    nextStep();
+  };
 
   const handleRetakeFront = () => {
     frontInputRef.current?.click();
@@ -56,11 +136,26 @@ export default function Step2KycVerification() {
   const handleFrontFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.currentTarget.value = '';
     setIsUploadingFront(true);
     try {
       const res = await installmentService.uploadFile(file);
       updateKycInfo({ idCardFrontUrl: res.url });
       toast.success('Đã tải ảnh mặt trước CCCD');
+
+      setOcrProgress(0);
+      try {
+        const extractedFields = await recognizeCccd(file, setOcrProgress);
+        const fieldsCount = Object.keys(extractedFields).length;
+        if (fieldsCount > 0) {
+          updateKycInfo(extractedFields);
+          toast.success(`Đã nhận diện ${fieldsCount} thông tin. Vui lòng kiểm tra lại.`);
+        } else {
+          toast.warning('Chưa nhận diện được thông tin. Vui lòng thử ảnh rõ nét hơn hoặc nhập thủ công.');
+        }
+      } catch {
+        toast.error('Không thể đọc nội dung CCCD. Vui lòng kiểm tra ảnh hoặc nhập thủ công.');
+      }
     } catch {
       toast.error('Lỗi khi tải ảnh mặt trước');
     } finally {
@@ -216,7 +311,7 @@ export default function Step2KycVerification() {
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#006347]/10 text-[#006347] text-xs font-bold border border-[#006347]/20 self-start sm:self-auto">
                 <CheckCircle2 className="size-4" />
-                <span>AI đã quét thành công 100% dữ liệu</span>
+                <span>OCR xử lý trên thiết bị</span>
               </div>
             </div>
 
@@ -236,9 +331,24 @@ export default function Step2KycVerification() {
                     className="text-xs text-[#143de7] hover:underline font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw className={`size-3.5 ${isUploadingFront ? 'animate-spin' : ''}`} />
-                    {isUploadingFront ? 'Đang tải...' : 'Tải ảnh / Chụp lại'}
+                    {isUploadingFront ? 'Đang tải & quét...' : 'Tải ảnh / Chụp lại'}
                   </button>
                 </div>
+                {isUploadingFront && (
+                  <div
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-[#c4c5d9]/40"
+                    role="progressbar"
+                    aria-label="Tiến trình nhận diện CCCD"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={ocrProgress}
+                  >
+                    <div
+                      className="h-full rounded-full bg-[#143de7] transition-[width]"
+                      style={{ width: `${ocrProgress}%` }}
+                    />
+                  </div>
+                )}
                 {/* Card Visual Preview */}
                 <div className="w-full h-44 rounded-lg bg-white overflow-hidden border border-[#c4c5d9]/40 relative shadow-xs">
                   <img
@@ -316,6 +426,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="NGUYEN VAN A"
+                  value={kycInfo.fullName}
                   onChange={(e) => updateKycInfo({ fullName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all uppercase"
                 />
@@ -328,6 +439,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="123456789012"
+                  value={kycInfo.cccdNumber}
                   onChange={(e) => updateKycInfo({ cccdNumber: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all font-mono"
                 />
@@ -340,6 +452,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="DD/MM/YYYY"
+                  value={kycInfo.dob}
                   onChange={(e) => updateKycInfo({ dob: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -396,6 +509,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="0901234567"  
+                  value={kycInfo.phone}
                   onChange={(e) => updateKycInfo({ phone: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm font-bold text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -422,6 +536,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
+                  value={kycInfo.permanentAddress}
                   onChange={(e) => updateKycInfo({ permanentAddress: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -434,6 +549,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="123 Đường ABC, Quận XYZ, TP. HCM"
+                  value={kycInfo.currentAddress}
                   onChange={(e) => updateKycInfo({ currentAddress: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -467,6 +583,7 @@ export default function Step2KycVerification() {
                   onChange={(e) => updateKycInfo({ jobTitle: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none transition-all"
                 >
+                  <option value="" disabled>Chọn nghề nghiệp</option>
                   <option value="Nhân viên văn phòng / Kỹ sư phần mềm">Nhân viên văn phòng / Kỹ sư phần mềm</option>
                   <option value="Kinh doanh tự do / Hộ cá thể">Kinh doanh tự do / Hộ cá thể</option>
                   <option value="Cán bộ / Công chức nhà nước">Cán bộ / Công chức nhà nước</option>
@@ -483,6 +600,7 @@ export default function Step2KycVerification() {
                   onChange={(e) => updateKycInfo({ monthlyIncome: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3 text-sm font-semibold text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none transition-all"
                 >
+                  <option value="" disabled>Chọn mức thu nhập</option>
                   <option value="Dưới 10.000.000đ / tháng">Dưới 10.000.000đ / tháng</option>
                   <option value="10.000.000đ - 18.000.000đ / tháng">10.000.000đ - 18.000.000đ / tháng</option>
                   <option value="18.000.000đ - 25.000.000đ / tháng">18.000.000đ - 25.000.000đ / tháng</option>
@@ -497,6 +615,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="Tên công ty / cơ quan làm việc"
+                  value={kycInfo.companyName}
                   onChange={(e) => updateKycInfo({ companyName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] focus:ring-2 focus:ring-[#143de7]/20 outline-none transition-all"
                 />
@@ -530,6 +649,7 @@ export default function Step2KycVerification() {
                   onChange={(e) => updateKycInfo({ refRelation: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none"
                 >
+                  <option value="" disabled>Chọn mối quan hệ</option>
                   <option value="Vợ / Chồng">Vợ / Chồng</option>
                   <option value="Bố / Mẹ">Bố / Mẹ</option>
                   <option value="Anh / Chị / Em ruột">Anh / Chị / Em ruột</option>
@@ -543,6 +663,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="Nguyễn Văn B"
+                  value={kycInfo.refName}
                   onChange={(e) => updateKycInfo({ refName: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none"
                 />
@@ -555,6 +676,7 @@ export default function Step2KycVerification() {
                 <input
                   type="text"
                   placeholder="0901234567"
+                  value={kycInfo.refPhone}
                   onChange={(e) => updateKycInfo({ refPhone: e.target.value })}
                   className="w-full h-11 rounded-xl bg-[#f2f3ff] border border-[#c4c5d9]/50 px-3.5 text-sm text-[#131b2e] focus:bg-white focus:border-[#143de7] outline-none"
                 />
@@ -767,8 +889,7 @@ export default function Step2KycVerification() {
 
               <button
                 type="button"
-                onClick={nextStep}
-                disabled={!kycInfo.agreeConsent}
+                onClick={handleContinue}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#fe6a34] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-[#fe6a34]/30 hover:brightness-105 active:scale-[0.99] transition-all flex items-center justify-center gap-2 tracking-wide disabled:opacity-50 cursor-pointer"
               >
                 <span>GỬI HỒ SƠ ĐỂ AI XÉT DUYỆT (ƯỚC TÍNH 3 PHÚT)</span>

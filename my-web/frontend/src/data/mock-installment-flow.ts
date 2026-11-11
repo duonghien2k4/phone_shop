@@ -168,23 +168,23 @@ export const MOCK_SHOWROOMS: ShowroomStore[] = [
 ];
 
 export const MOCK_INITIAL_KYC: CustomerKycInfo = {
-  fullName: 'NGUYEN HOANG NAM',
-  cccdNumber: '001201018924',
-  dob: '15/08/1996',
-  gender: 'Nam',
-  phone: '0988 123 456',
+  fullName: '',
+  cccdNumber: '',
+  dob: '',
+  gender: '',
   email: '',
-  permanentAddress: 'Số 18, Ngõ 45 Trần Thái Tông, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội',
-  currentAddress: 'Tòa Discovery Complex, 302 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội',
-  jobTitle: 'Nhân viên văn phòng / Kỹ sư phần mềm',
-  monthlyIncome: '18.000.000đ - 25.000.000đ / tháng',
-  companyName: 'Công ty Cổ phần Công nghệ NextGen',
-  refRelation: 'Vợ / Chồng',
-  refName: 'Trần Thị Thu Hà',
-  refPhone: '0912 889 900',
+  phone: '',
+  permanentAddress: '',
+  currentAddress: '',
+  jobTitle: '',
+  monthlyIncome: '',
+  companyName: '',
+  refRelation: '',
+  refName: '',
+  refPhone: '',
   deliveryMethod: 'shop',
   pickupStoreId: 'duy-tan',
-  agreeConsent: true,
+  agreeConsent: false,
 };
 
 // ================= DATASOURCE API-READY INTERFACE =================

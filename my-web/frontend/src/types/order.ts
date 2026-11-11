@@ -9,7 +9,7 @@ export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | '
 
 export type FulfillmentMode = 'HOME_DELIVERY' | 'STORE_PICKUP';
 
-export type PaymentMethodType = 'COD' | 'VIETQR' | 'DEPOSIT_5' | 'PAY_AT_STORE';
+export type PaymentMethodType = 'COD' | 'VIETQR' | 'DEPOSIT_5' | 'PAY_AT_STORE' | 'STRIPE';
 
 export interface OrderItem {
   id: number;

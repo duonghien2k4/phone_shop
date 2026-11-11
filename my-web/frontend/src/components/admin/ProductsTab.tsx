@@ -2,20 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Package,
   Plus,
-  Search,
-  Filter,
   Edit2,
   Trash2,
-  ChevronDown,
   Layers,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
   RefreshCw,
   ImagePlus,
   X,
+  Search,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +24,28 @@ import {
 } from '@/components/ui/dialog';
 import { adminService } from '@/services/admin.service';
 
-export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) => {
+interface ProductVariantCost {
+  id: number;
+  storage: string;
+  color: string;
+  sku?: string;
+  price: number | string;
+  purchasePrice?: number | string | null;
+  inventory?: { stock?: number | null } | null;
+}
+
+interface AdminProduct {
+  id: number;
+  name: string;
+  basePrice: number | string;
+  salePrice?: number | string | null;
+  variants?: ProductVariantCost[];
+}
+
+export const ProductsTab: React.FC<{
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}> = ({ searchQuery, onSearchChange }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
@@ -52,6 +67,7 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
     name: '',
     basePrice: 0,
     salePrice: 0,
+    purchasePrice: '',
     brandId: 0,
     categoryId: 0,
     image: '',
@@ -61,15 +77,18 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
 
   // Modal Variant Management
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
-  const [activeProductForVariants, setActiveProductForVariants] = useState<any>(null);
+  const [activeProductForVariants, setActiveProductForVariants] = useState<AdminProduct | null>(null);
   const [variantForm, setVariantForm] = useState({
     storage: '256GB',
     color: 'Titan Tự Nhiên',
     ram: '12GB',
     price: 35000000,
+    purchasePrice: '',
     oldPrice: 38000000,
     stock: 50,
   });
+  const [purchaseCostDrafts, setPurchaseCostDrafts] = useState<Record<number, string>>({});
+  const [savingPurchaseCostFor, setSavingPurchaseCostFor] = useState<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -116,6 +135,7 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
       name: '',
       basePrice: 20000000,
       salePrice: 18500000,
+      purchasePrice: '',
       brandId: brands[0]?.id || 1,
       categoryId: categories[0]?.id || 1,
       image: '',
@@ -135,6 +155,7 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
       name: p.name,
       basePrice: Number(p.basePrice),
       salePrice: p.salePrice ? Number(p.salePrice) : Number(p.basePrice),
+      purchasePrice: '',
       brandId: p.brandId,
       categoryId: p.categoryId,
       image: p.image,
@@ -154,6 +175,15 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
       alert('Vui lòng tải ảnh chính của sản phẩm lên.');
       return;
     }
+    if (
+      !editingProduct &&
+      (formData.purchasePrice.trim() === '' ||
+        !Number.isFinite(Number(formData.purchasePrice)) ||
+        Number(formData.purchasePrice) < 0)
+    ) {
+      alert('Vui lòng nhập giá vốn hợp lệ cho biến thể mặc định.');
+      return;
+    }
 
     setIsSavingProduct(true);
     try {
@@ -169,6 +199,7 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
         : [];
       const productData = {
         ...formData,
+        purchasePrice: editingProduct ? undefined : Number(formData.purchasePrice),
         image: mainImage,
         images: [...existingSecondaryImages, ...secondaryImageUrls],
       };
@@ -192,34 +223,77 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
     try {
       await adminService.deleteProduct(id);
       void loadData(pagination.page);
-    } catch (err) {
+    } catch {
       alert('Không thể ẩn sản phẩm');
     }
   };
 
   // Manage variants
-  const handleOpenVariants = (p: any) => {
+  const handleOpenVariants = (p: AdminProduct) => {
     setActiveProductForVariants(p);
+    setPurchaseCostDrafts({});
     setVariantForm({
       storage: '256GB',
       color: 'Titan Tự Nhiên',
       ram: '12GB',
       price: Number(p.salePrice || p.basePrice),
+      purchasePrice: '',
       oldPrice: Number(p.basePrice),
       stock: 50,
     });
     setIsVariantModalOpen(true);
   };
 
+  const handleSavePurchaseCost = async (variant: ProductVariantCost) => {
+    if (!activeProductForVariants) return;
+    const value = purchaseCostDrafts[variant.id] ??
+      (variant.purchasePrice == null ? '' : String(Number(variant.purchasePrice)));
+    const purchasePrice = Number(value);
+    if (value.trim() === '' || !Number.isFinite(purchasePrice) || purchasePrice < 0) {
+      alert('Vui lòng nhập giá vốn hợp lệ, lớn hơn hoặc bằng 0.');
+      return;
+    }
+
+    setSavingPurchaseCostFor(variant.id);
+    try {
+      await adminService.updateVariant(variant.id, { purchasePrice });
+      const updated = await adminService.getProducts({ page: pagination.page, limit: 10 });
+      const current = updated.items.find((product: AdminProduct) => product.id === activeProductForVariants.id);
+      setActiveProductForVariants(current ?? null);
+      setPurchaseCostDrafts((drafts) => {
+        const nextDrafts = { ...drafts };
+        delete nextDrafts[variant.id];
+        return nextDrafts;
+      });
+      void loadData(pagination.page);
+    } catch (err) {
+      alert('Lỗi cập nhật giá vốn: ' + (err as Error).message);
+    } finally {
+      setSavingPurchaseCostFor(null);
+    }
+  };
+
   const handleAddVariant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeProductForVariants) return;
+    if (
+      variantForm.purchasePrice.trim() === '' ||
+      !Number.isFinite(Number(variantForm.purchasePrice)) ||
+      Number(variantForm.purchasePrice) < 0
+    ) {
+      alert('Vui lòng nhập giá vốn hợp lệ, lớn hơn hoặc bằng 0.');
+      return;
+    }
+
     try {
-      await adminService.createVariant(activeProductForVariants.id, variantForm);
+      await adminService.createVariant(activeProductForVariants.id, {
+        ...variantForm,
+        purchasePrice: Number(variantForm.purchasePrice),
+      });
       // Reload product data
       const updated = await adminService.getProducts({ page: pagination.page, limit: 10 });
-      const current = updated.items.find((x: any) => x.id === activeProductForVariants.id);
-      setActiveProductForVariants(current);
+      const current = updated.items.find((product: AdminProduct) => product.id === activeProductForVariants.id);
+      setActiveProductForVariants(current ?? null);
       void loadData(pagination.page);
     } catch (err) {
       alert('Lỗi tạo biến thể: ' + (err as Error).message);
@@ -227,12 +301,13 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
   };
 
   const handleDeleteVariant = async (varId: number) => {
+    if (!activeProductForVariants) return;
     if (!window.confirm('Xác nhận xóa biến thể này?')) return;
     try {
       await adminService.deleteVariant(varId);
       const updated = await adminService.getProducts({ page: pagination.page, limit: 10 });
-      const current = updated.items.find((x: any) => x.id === activeProductForVariants.id);
-      setActiveProductForVariants(current);
+      const current = updated.items.find((product: AdminProduct) => product.id === activeProductForVariants.id);
+      setActiveProductForVariants(current ?? null);
       void loadData(pagination.page);
     } catch (err) {
       alert('Lỗi xóa biến thể');
@@ -262,7 +337,26 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
 
       {/* Filter Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-72">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Tìm tên sản phẩm..."
+              className="h-9 pl-9 pr-8 text-xs bg-slate-50"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                aria-label="Xóa tìm kiếm"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <select
             value={selectedBrand || ''}
             onChange={(e) => setSelectedBrand(e.target.value ? Number(e.target.value) : undefined)}
@@ -579,6 +673,11 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                         <p className="font-bold text-slate-900">
                           {Number(variant.price).toLocaleString('vi-VN')}đ
                         </p>
+                        <p className="text-slate-500">
+                          Giá vốn: {variant.purchasePrice == null
+                            ? 'chưa nhập'
+                            : `${Number(variant.purchasePrice).toLocaleString('vi-VN')}đ`}
+                        </p>
                         <p className="text-slate-500">Tồn kho: {variant.inventory?.stock ?? 0}</p>
                       </div>
                     </div>
@@ -683,6 +782,22 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                 />
               </div>
             </div>
+
+            {!editingProduct && (
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Giá vốn biến thể mặc định (128GB) *</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  value={formData.purchasePrice}
+                  onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                  className="text-xs"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">Các biến thể khác cần nhập giá vốn riêng trong phần quản lý biến thể.</p>
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
@@ -804,16 +919,42 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
           <div className="space-y-2 mb-6">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Danh sách biến thể hiện tại:</h4>
             <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-48 overflow-y-auto text-xs">
-              {activeProductForVariants?.variants?.map((v: any) => (
-                <div key={v.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50">
+              {activeProductForVariants?.variants?.map((v) => (
+                <div key={v.id} className="p-2.5 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-50">
                   <div>
                     <span className="font-extrabold text-blue-600 mr-2">{v.storage}</span>
                     <span className="font-medium text-slate-700">{v.color}</span>
                     <span className="text-slate-400 text-[11px] ml-2">SKU: {v.sku}</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-900">{Number(v.price).toLocaleString('vi-VN')}đ</span>
                     <span className="text-slate-500 font-semibold">{v.inventory?.stock ?? 0} máy</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        required
+                        aria-label={`Giá vốn ${v.storage} ${v.color}`}
+                        placeholder="Giá vốn"
+                        value={purchaseCostDrafts[v.id] ?? (v.purchasePrice == null ? '' : String(Number(v.purchasePrice)))}
+                        onChange={(event) => setPurchaseCostDrafts({
+                          ...purchaseCostDrafts,
+                          [v.id]: event.target.value,
+                        })}
+                        className="h-7 w-28 text-[11px]"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={savingPurchaseCostFor === v.id}
+                        onClick={() => void handleSavePurchaseCost(v)}
+                        className="h-7 px-2 text-[10px]"
+                      >
+                        {savingPurchaseCostFor === v.id ? 'Lưu...' : 'Lưu giá vốn'}
+                      </Button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleDeleteVariant(v.id)}
@@ -862,13 +1003,25 @@ export const ProductsTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div>
                 <label className="font-semibold text-slate-600 block mb-0.5">Giá bán (VND)</label>
                 <Input
                   type="number"
                   value={variantForm.price}
                   onChange={(e) => setVariantForm({ ...variantForm, price: Number(e.target.value) })}
+                  className="text-xs h-8"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-600 block mb-0.5">Giá nhập / giá vốn (VND)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  value={variantForm.purchasePrice}
+                  onChange={(e) => setVariantForm({ ...variantForm, purchasePrice: e.target.value })}
                   className="text-xs h-8"
                 />
               </div>

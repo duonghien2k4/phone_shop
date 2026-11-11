@@ -8,12 +8,30 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var OrdersService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../../database/prisma.service");
+const stripe_1 = __importDefault(require("stripe"));
+const customerOrderItemSelect = {
+    id: true,
+    orderId: true,
+    productId: true,
+    variantId: true,
+    productName: true,
+    color: true,
+    storage: true,
+    imageUrl: true,
+    quantity: true,
+    unitPrice: true,
+    total: true,
+    createdAt: true,
+};
 let OrdersService = OrdersService_1 = class OrdersService {
     prisma;
     configService;
@@ -22,11 +40,97 @@ let OrdersService = OrdersService_1 = class OrdersService {
         this.prisma = prisma;
         this.configService = configService;
     }
+    getStripe() {
+        const secretKey = this.configService.get('stripe.secretKey');
+        if (!secretKey) {
+            throw new common_1.BadRequestException('Stripe chưa được cấu hình trên backend');
+        }
+        return new stripe_1.default(secretKey);
+    }
+    async createStripeCheckout(userId, orderId) {
+        const order = await this.prisma.order.findFirst({
+            where: { id: orderId, userId },
+            include: { items: true, payment: true },
+        });
+        if (!order)
+            throw new common_1.NotFoundException('Không tìm thấy đơn hàng');
+        if (order.paymentStatus === 'PAID') {
+            throw new common_1.BadRequestException('Đơn hàng đã được thanh toán');
+        }
+        const stripe = this.getStripe();
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            line_items: order.items.map((item) => ({
+                price_data: {
+                    currency: 'vnd',
+                    product_data: { name: `${item.productName} - ${item.storage} ${item.color}` },
+                    unit_amount: Math.round(Number(item.unitPrice)),
+                },
+                quantity: item.quantity,
+            })),
+            customer_email: (await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email,
+            success_url: `${this.configService.get('frontendUrl')}/orders/${order.id}?payment=success`,
+            cancel_url: `${this.configService.get('frontendUrl')}/checkout?payment=cancelled`,
+            metadata: { orderId: String(order.id) },
+        });
+        await this.prisma.payment.upsert({
+            where: { orderId: order.id },
+            create: {
+                orderId: order.id,
+                method: 'STRIPE',
+                status: 'PENDING',
+                amount: order.total,
+                transactionId: session.id,
+                gatewayData: { checkoutSessionId: session.id },
+            },
+            update: {
+                method: 'STRIPE',
+                transactionId: session.id,
+                gatewayData: { checkoutSessionId: session.id },
+            },
+        });
+        return { checkoutUrl: session.url };
+    }
+    async handleStripeWebhook(signature, rawBody) {
+        const webhookSecret = this.configService.get('stripe.webhookSecret');
+        if (!signature || !rawBody || !webhookSecret) {
+            throw new common_1.BadRequestException('Stripe webhook chưa được cấu hình đầy đủ');
+        }
+        const stripe = this.getStripe();
+        const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+            const orderId = Number(session.metadata?.orderId);
+            if (Number.isInteger(orderId)) {
+                await this.prisma.$transaction([
+                    this.prisma.payment.updateMany({
+                        where: { orderId },
+                        data: { status: 'PAID', paidAt: new Date(), gatewayData: session },
+                    }),
+                    this.prisma.order.update({
+                        where: { id: orderId },
+                        data: { paymentStatus: 'PAID' },
+                    }),
+                ]);
+            }
+        }
+        if (event.type === 'checkout.session.expired') {
+            const session = event.data.object;
+            const orderId = Number(session.metadata?.orderId);
+            if (Number.isInteger(orderId)) {
+                await this.prisma.payment.updateMany({
+                    where: { orderId },
+                    data: { status: 'FAILED', gatewayData: session },
+                });
+            }
+        }
+        return { received: true };
+    }
     async findMyOrders(userId) {
         return this.prisma.order.findMany({
             where: { userId },
             include: {
-                items: true,
+                items: { select: customerOrderItemSelect },
                 payment: true,
             },
             orderBy: { createdAt: 'desc' },
@@ -36,7 +140,7 @@ let OrdersService = OrdersService_1 = class OrdersService {
         const order = await this.prisma.order.findFirst({
             where: { id: orderId, userId },
             include: {
-                items: true,
+                items: { select: customerOrderItemSelect },
                 payment: true,
             },
         });
@@ -67,28 +171,23 @@ let OrdersService = OrdersService_1 = class OrdersService {
                 throw new common_1.BadRequestException('Không có sản phẩm nào được chọn để thanh toán');
             }
             for (const item of targetItems) {
-                const updateResult = await transaction.inventory.updateMany({
-                    where: {
-                        variantId: item.variantId,
-                        stock: { gte: item.quantity },
-                    },
-                    data: {
-                        stock: { decrement: item.quantity },
-                    },
-                });
-                if (updateResult.count === 0) {
+                const updateResult = await transaction.$executeRaw `
+          UPDATE "inventories"
+          SET
+            "reserved" = "reserved" + ${item.quantity},
+            "status" = CASE
+              WHEN "stock" - ("reserved" + ${item.quantity}) <= 0 THEN 'OUT_OF_STOCK'::"StockStatus"
+              WHEN "stock" - ("reserved" + ${item.quantity}) <= 5 THEN 'LOW_STOCK'::"StockStatus"
+              ELSE 'IN_STOCK'::"StockStatus"
+            END,
+            "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "variantId" = ${item.variantId}
+            AND "stock" - "reserved" >= ${item.quantity}
+        `;
+                if (updateResult === 0) {
                     const itemName = `${item.variant.product.name} (${item.variant.storage || ''} ${item.variant.color || ''})`.trim();
                     throw new common_1.BadRequestException(`Sản phẩm "${itemName}" đã hết hàng hoặc không đủ số lượng trong kho.`);
                 }
-                await transaction.inventory.updateMany({
-                    where: {
-                        variantId: item.variantId,
-                        stock: { lte: 0 },
-                    },
-                    data: {
-                        status: 'OUT_OF_STOCK',
-                    },
-                });
             }
             const subtotal = targetItems.reduce((sum, item) => sum + Number(item.variant.price) * item.quantity, 0);
             const shippingFee = dto.shippingFee ?? 0;
@@ -151,6 +250,7 @@ let OrdersService = OrdersService_1 = class OrdersService {
                 data: {
                     userId,
                     status: 'PENDING',
+                    inventoryAllocationStatus: 'RESERVED',
                     subtotal: subtotal.toString(),
                     shippingFee: shippingFee.toString(),
                     discount: discount.toString(),
@@ -172,12 +272,13 @@ let OrdersService = OrdersService_1 = class OrdersService {
                                 imageUrl: item.variant.imageUrl,
                                 quantity: item.quantity,
                                 unitPrice: unitPrice.toString(),
+                                unitCostSnapshot: item.variant.purchasePrice?.toString() ?? null,
                                 total: (unitPrice * item.quantity).toString(),
                             };
                         }),
                     },
                 },
-                include: { items: true },
+                include: { items: { select: customerOrderItemSelect } },
             });
             const orderedVariantIds = targetItems.map((item) => item.variantId);
             await transaction.cartItem.deleteMany({

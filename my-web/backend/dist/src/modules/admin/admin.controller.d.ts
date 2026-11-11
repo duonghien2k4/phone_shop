@@ -6,6 +6,7 @@ export declare class AdminController {
     private readonly cloudinaryUploadService;
     constructor(adminService: AdminService, cloudinaryUploadService: CloudinaryUploadService);
     getDashboardStats(): Promise<{
+        year: number;
         overview: {
             totalRevenue: number;
             totalOrders: number;
@@ -13,6 +14,15 @@ export declare class AdminController {
             totalProducts: number;
             lowStockVariants: number;
             totalCustomers: number;
+            completedOrders: number;
+            inventoryTotalVariants: number;
+            inventoryHealthyVariants: number;
+            yearToDateRevenue: number;
+            yearToDateGrossProfit: number;
+            yearToDateGrossMargin: number;
+            yearToDatePaidOrders: number;
+            yearToDatePaidOrdersWithCost: number;
+            yearToDatePaidOrdersMissingCost: number;
         };
         recentOrders: ({
             user: {
@@ -32,6 +42,7 @@ export declare class AdminController {
                 productName: string;
                 quantity: number;
                 unitPrice: import("@prisma/client-runtime-utils").Decimal;
+                unitCostSnapshot: import("@prisma/client-runtime-utils").Decimal | null;
                 variantId: number;
                 orderId: number;
             }[];
@@ -41,6 +52,7 @@ export declare class AdminController {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client-runtime-utils").Decimal;
+            inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
             subtotal: import("@prisma/client-runtime-utils").Decimal;
             shippingFee: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
@@ -60,10 +72,19 @@ export declare class AdminController {
         monthlyData: {
             month: string;
             revenue: number;
+            grossProfit: number;
             orders: number;
+        }[];
+        paymentMethodData: {
+            revenue: number;
+            orders: number;
+            paymentMethod: string;
         }[];
     }>;
     uploadProductImage(file?: UploadedImageFile): Promise<{
+        url: string;
+    }>;
+    uploadReceiptImage(file?: UploadedImageFile): Promise<{
         url: string;
     }>;
     getProducts(page?: string, limit?: string, search?: string, categoryId?: string, brandId?: string): Promise<{
@@ -106,6 +127,7 @@ export declare class AdminController {
                 ram: string | null;
                 sku: string;
                 price: import("@prisma/client-runtime-utils").Decimal;
+                purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
                 oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
                 imageUrl: string | null;
             })[];
@@ -189,6 +211,7 @@ export declare class AdminController {
             ram: string | null;
             sku: string;
             price: import("@prisma/client-runtime-utils").Decimal;
+            purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
@@ -265,6 +288,7 @@ export declare class AdminController {
             ram: string | null;
             sku: string;
             price: import("@prisma/client-runtime-utils").Decimal;
+            purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         })[];
@@ -347,6 +371,7 @@ export declare class AdminController {
         ram: string | null;
         sku: string;
         price: import("@prisma/client-runtime-utils").Decimal;
+        purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
         oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
         imageUrl: string | null;
     }>;
@@ -360,6 +385,7 @@ export declare class AdminController {
         ram: string | null;
         sku: string;
         price: import("@prisma/client-runtime-utils").Decimal;
+        purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
         oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
         imageUrl: string | null;
     }>;
@@ -373,6 +399,7 @@ export declare class AdminController {
         ram: string | null;
         sku: string;
         price: import("@prisma/client-runtime-utils").Decimal;
+        purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
         oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
         imageUrl: string | null;
     }>;
@@ -488,6 +515,7 @@ export declare class AdminController {
                 ram: string | null;
                 sku: string;
                 price: import("@prisma/client-runtime-utils").Decimal;
+                purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
                 oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
                 imageUrl: string | null;
             };
@@ -508,8 +536,7 @@ export declare class AdminController {
     }>;
     updateInventoryStock(id: number, data: {
         stock: number;
-        reserved?: number;
-    }): Promise<{
+    }): Promise<({
         variant: {
             product: {
                 id: number;
@@ -547,6 +574,7 @@ export declare class AdminController {
             ram: string | null;
             sku: string;
             price: import("@prisma/client-runtime-utils").Decimal;
+            purchasePrice: import("@prisma/client-runtime-utils").Decimal | null;
             oldPrice: import("@prisma/client-runtime-utils").Decimal | null;
             imageUrl: string | null;
         };
@@ -557,6 +585,23 @@ export declare class AdminController {
         variantId: number;
         stock: number;
         reserved: number;
+    }) | null>;
+    createStockReceipt(data: any): Promise<{
+        items: {
+            id: number;
+            createdAt: Date;
+            quantity: number;
+            variantId: number;
+            unitCost: import("@prisma/client-runtime-utils").Decimal;
+            receiptId: number;
+        }[];
+    } & {
+        id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        supplier: string | null;
+        billImageUrl: string | null;
+        ocrText: string | null;
     }>;
     getOrders(page?: string, limit?: string, search?: string, status?: string): Promise<{
         items: ({
@@ -587,6 +632,7 @@ export declare class AdminController {
                 productName: string;
                 quantity: number;
                 unitPrice: import("@prisma/client-runtime-utils").Decimal;
+                unitCostSnapshot: import("@prisma/client-runtime-utils").Decimal | null;
                 variantId: number;
                 orderId: number;
             }[];
@@ -608,6 +654,7 @@ export declare class AdminController {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client-runtime-utils").Decimal;
+            inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
             subtotal: import("@prisma/client-runtime-utils").Decimal;
             shippingFee: import("@prisma/client-runtime-utils").Decimal;
             total: import("@prisma/client-runtime-utils").Decimal;
@@ -653,6 +700,7 @@ export declare class AdminController {
             productName: string;
             quantity: number;
             unitPrice: import("@prisma/client-runtime-utils").Decimal;
+            unitCostSnapshot: import("@prisma/client-runtime-utils").Decimal | null;
             variantId: number;
             orderId: number;
         }[];
@@ -674,6 +722,7 @@ export declare class AdminController {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client-runtime-utils").Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
         total: import("@prisma/client-runtime-utils").Decimal;
@@ -706,6 +755,7 @@ export declare class AdminController {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client-runtime-utils").Decimal;
+        inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
         subtotal: import("@prisma/client-runtime-utils").Decimal;
         shippingFee: import("@prisma/client-runtime-utils").Decimal;
         total: import("@prisma/client-runtime-utils").Decimal;
@@ -732,6 +782,7 @@ export declare class AdminController {
                 updatedAt: Date;
                 status: import("@prisma/client").$Enums.OrderStatus;
                 discount: import("@prisma/client-runtime-utils").Decimal;
+                inventoryAllocationStatus: import("@prisma/client").$Enums.InventoryAllocationStatus;
                 subtotal: import("@prisma/client-runtime-utils").Decimal;
                 shippingFee: import("@prisma/client-runtime-utils").Decimal;
                 total: import("@prisma/client-runtime-utils").Decimal;
