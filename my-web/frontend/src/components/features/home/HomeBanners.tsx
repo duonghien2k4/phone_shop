@@ -16,41 +16,42 @@ import { LABELS } from '@/constants/labels';
 const HERO_BANNERS = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=1200&auto=format&fit=crop',
-    title: 'Galaxy S26 Ultra - Siêu Phẩm AI',
+    image: 'https://images.unsplash.com/photo-1610792516307-ea5acd9c3b00?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+    title: "Điện thoại Samsung Galaxy S25 Ultra - Sản Phẩm Của Tương Lai",
     sub: 'Đăng ký sớm nhận voucher 500k',
-    link: '/products/samsung-galaxy-s26-ultra'
+    link: '/products/dien-thoai-samsung-galaxy-s25-ultra-5g-12gb256gb-333347'
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=1200&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1757710436034-f1d7372ec1be?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
     title: 'iPhone 17 Pro Max - Titanium',
     sub: 'Sở hữu ngay với trả góp 0%',
-    link: '/products/iphone-17-pro-max'
+    link: '/products/dien-thoai-iphone-17-pro-max-256gb-342679'
   },
   {
     id: 3,
-    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop',
-    title: 'Xiaomi 17T Pro - Vua Hiệu Năng',
+    image: 'https://images.unsplash.com/photo-1710023038502-ba80a70a9f53?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+    title: 'Iphone 15 Plus - Vua Hiệu Năng',
     sub: 'Sạc nhanh 120W, đầy pin trong 19 phút',
-    link: '/products/xiaomi-17t-pro-5g'
+    link: '/products/dien-thoai-iphone-15-plus-128gb-303891'
   }
 ];
+
 
 const PROMO_SIDE_BANNERS = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1605236453806-6ff36851218e?q=80&w=400&auto=format&fit=crop',
-    title: 'MacBook Pro M5',
-    sub: 'Nay chỉ từ 35.990.000đ',
-    link: '#'
+    image: 'https://images.unsplash.com/photo-1772182092777-6b1bf0a362fe?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D',
+    title: 'Samsung Galaxy Z Flip7',
+    sub: 'Nay chỉ từ 23.990.000đ - Trả góp 0%',
+    link: '/products/dien-thoai-samsung-galaxy-z-flip7-5g-12gb256gb-338736'
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=400&auto=format&fit=crop',
-    title: 'Phụ kiện Apple',
+    image: 'https://cdn.tgdd.vn/Products/Images/42/342670/iphone-air-vang-thumb-600x600.jpg',
+    title: 'iPhone Air',
     sub: 'Giảm đến 30% khi mua kèm',
-    link: '#'
+    link: '/products/dien-thoai-iphone-air-256gb-342670'
   }
 ];
 

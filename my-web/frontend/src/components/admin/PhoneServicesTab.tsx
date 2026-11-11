@@ -298,43 +298,43 @@ export const InstallmentAppsTab: React.FC = () => {
     switch (status) {
       case 'SUBMITTED':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
             Chờ tiếp nhận
           </span>
         );
       case 'UNDER_REVIEW':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
             Đang kiểm tra
           </span>
         );
       case 'NEED_MORE_INFO':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
             Cần bổ sung
           </span>
         );
       case 'PARTNER_REVIEW':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
             Chờ đối tác
           </span>
         );
       case 'APPROVED':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
             Đã duyệt
           </span>
         );
       case 'REJECTED':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
             Bị từ chối
           </span>
         );
       case 'CANCELLED':
         return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300">
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300">
             Đã hủy
           </span>
         );
@@ -495,7 +495,7 @@ export const InstallmentAppsTab: React.FC = () => {
                           setSelectedApp(a);
                           void loadDetail(a.id);
                         }}
-                        className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-[11px] inline-flex items-center gap-1 whitespace-nowrap transition cursor-pointer"
                       >
                         <Eye className="size-3.5" /> Xem & Thẩm định
                       </button>
@@ -1324,7 +1324,7 @@ export const TradeInTab: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                      className={`inline-flex items-center whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded ${
                         r.status === 'COMPLETED'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : r.status === 'INSPECTED'
@@ -1349,7 +1349,7 @@ export const TradeInTab: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleUpdate(r.id, 'COMPLETED')}
-                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px]"
+                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] whitespace-nowrap"
                       >
                         Thu mua
                       </button>
@@ -1465,7 +1465,7 @@ export const WarrantyTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                   <td className="py-3 px-4 text-slate-500 max-w-xs italic">{w.technicianNote}</td>
                   <td className="py-3 px-4">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                      className={`inline-flex items-center whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded ${
                         w.status === 'REPLACED_1_TO_1'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : w.status === 'IN_WARRANTY'
@@ -1481,7 +1481,7 @@ export const WarrantyTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                       <button
                         type="button"
                         onClick={() => handleStatusChange(w.id, 'REPLACED_1_TO_1')}
-                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px]"
+                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[11px] whitespace-nowrap"
                       >
                         Đổi mới 1:1
                       </button>

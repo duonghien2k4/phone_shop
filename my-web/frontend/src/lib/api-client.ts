@@ -1,7 +1,7 @@
 /**
  * Centralized HTTP client for the NestJS API.
  * Supports two auth layers:
- *  Admin endpoints prefer the local JWT; customer endpoints prefer the Clerk
+ *  Admin endpoints use the local JWT; customer endpoints prefer the Clerk
  *  session token, with local customer auth as a fallback.
  */
 
@@ -47,20 +47,17 @@ export async function apiClient<T>(
 ): Promise<T> {
   const { skipAuth = false, _isRetry = false, ...fetchOptions } = options;
   const requiresAuth = !skipAuth || endpoint.startsWith('/admin/');
+  const isAdminEndpoint = endpoint === '/admin' || endpoint.startsWith('/admin/');
   const headers: Record<string, string> = {
     ...(fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(fetchOptions.headers as Record<string, string>),
   };
 
   if (requiresAuth && !headers.Authorization) {
-    const isAdminEndpoint = endpoint === '/admin' || endpoint.startsWith('/admin/');
     let token: string | null = null;
 
     if (isAdminEndpoint) {
       token = localTokenGetter ? localTokenGetter() : null;
-      if (!token && clerkTokenGetter) {
-        token = await clerkTokenGetter();
-      }
     } else {
       token = clerkTokenGetter ? await clerkTokenGetter() : null;
       if (!token && localTokenGetter) {
@@ -79,8 +76,14 @@ export async function apiClient<T>(
     credentials: 'include',
   });
 
-  // If 401 and not already retried, force fresh token from Clerk and retry once
-  if (response.status === 401 && requiresAuth && !_isRetry && clerkTokenGetter) {
+  // Retry customer requests once with a fresh Clerk token after an authorization failure.
+  if (
+    response.status === 401 &&
+    requiresAuth &&
+    !isAdminEndpoint &&
+    !_isRetry &&
+    clerkTokenGetter
+  ) {
     try {
       const freshToken = await clerkTokenGetter({ skipCache: true });
       if (freshToken) {

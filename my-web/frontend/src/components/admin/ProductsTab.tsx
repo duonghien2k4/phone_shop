@@ -436,8 +436,9 @@ export const ProductsTab: React.FC<{
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={p.image || '/images/default-phone.png'}
+                            src={p.image || '/placeholder-phone.svg'}
                             alt={p.name}
+                            referrerPolicy="no-referrer"
                             className="w-10 h-10 object-contain rounded-md bg-slate-50 border border-slate-100 p-0.5 shrink-0"
                           />
                           <div>
@@ -582,8 +583,9 @@ export const ProductsTab: React.FC<{
 
             <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
               <img
-                src={selectedProduct.image || '/images/default-phone.png'}
+                src={selectedProduct.image || '/placeholder-phone.svg'}
                 alt={selectedProduct.name}
+                referrerPolicy="no-referrer"
                 className="h-44 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain p-3"
               />
               <div className="space-y-3 text-sm">
@@ -629,6 +631,7 @@ export const ProductsTab: React.FC<{
                       key={image.id ?? image.url}
                       src={image.url}
                       alt={`Ảnh phụ ${index + 1} của ${selectedProduct.name}`}
+                      referrerPolicy="no-referrer"
                       className="h-16 w-16 rounded-lg border border-slate-200 bg-white object-contain p-1"
                     />
                   ))}
@@ -824,6 +827,7 @@ export const ProductsTab: React.FC<{
                   <img
                     src={mainImagePreview || formData.image}
                     alt="Ảnh chính sản phẩm"
+                    referrerPolicy="no-referrer"
                     className="mt-2 h-20 w-20 rounded-lg border border-slate-200 bg-white object-contain p-1"
                   />
                 )}
@@ -857,6 +861,7 @@ export const ProductsTab: React.FC<{
                         <img
                           src={url}
                           alt={`Ảnh phụ ${index + 1}`}
+                          referrerPolicy="no-referrer"
                           className="h-16 w-16 rounded border border-slate-200 object-cover"
                         />
                         <button

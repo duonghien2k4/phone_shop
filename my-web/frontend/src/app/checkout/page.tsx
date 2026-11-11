@@ -240,6 +240,11 @@ function CheckoutForm() {
       return;
     }
 
+     if (!/^[0-9]{10}$/.test(phone)) {
+      toast.error(LABELS.CHECKOUT.ERROR_INVALID_PHONE);
+      return;
+    }
+
     if (paymentMethod === 'VIETQR' || paymentMethod === 'DEPOSIT_5') {
       setShowQrModal(true);
     } else {
@@ -418,6 +423,9 @@ function CheckoutForm() {
             <input 
               id="phone"
               type="tel" 
+              inputMode="numeric"
+              pattern="[0-9]{10}"
+              maxLength={10}
               className="checkout-input"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}

@@ -79,6 +79,7 @@ export class AdminController {
   }
 
   @Get('products')
+  @Roles('ADMIN', 'STAFF')
   getProducts(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
@@ -122,6 +123,7 @@ export class AdminController {
 
   // 2. Thương hiệu & Danh mục
   @Get('brands')
+  @Roles('ADMIN', 'STAFF')
   getBrands() {
     return this.adminService.getBrands();
   }
@@ -142,6 +144,7 @@ export class AdminController {
   }
 
   @Get('categories')
+  @Roles('ADMIN', 'STAFF')
   getCategories() {
     return this.adminService.getCategories();
   }
@@ -243,16 +246,19 @@ export class AdminController {
 
   // 2. Đánh giá sản phẩm
   @Get('reviews')
+  @Roles('ADMIN', 'STAFF')
   getReviews(@Query('page') page = '1', @Query('limit') limit = '10', @Query('rating') rating = '') {
     return this.adminService.getReviews(+page, +limit, rating ? +rating : undefined);
   }
 
   @Patch('reviews/:id/visibility')
+  @Roles('ADMIN', 'STAFF')
   toggleReviewVisibility(@Param('id', ParseIntPipe) id: number, @Body() data: { isVisible: boolean }) {
     return this.adminService.toggleReviewVisibility(id, data.isVisible);
   }
 
   @Delete('reviews/:id')
+  @Roles('ADMIN', 'STAFF')
   deleteReview(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteReview(id);
   }

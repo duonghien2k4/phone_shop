@@ -26,9 +26,10 @@ interface SafeImageProps extends Omit<ImageProps, 'onError'> {
 }
 
 function checkIsExternal(srcStr: string): boolean {
-  if (srcStr.startsWith('http://') || srcStr.startsWith('https://')) {
+  const normalizedSrc = normalizeSrc(srcStr);
+  if (normalizedSrc.startsWith('http://') || normalizedSrc.startsWith('https://')) {
     try {
-      const url = new URL(srcStr);
+      const url = new URL(normalizedSrc);
       const domain = url.hostname;
       return !WHITELISTED_DOMAINS.some(
         (allowed) => domain === allowed || domain.endsWith(`.${allowed}`)
@@ -40,14 +41,24 @@ function checkIsExternal(srcStr: string): boolean {
   return false;
 }
 
+function normalizeSrc(src: string): string {
+  return src.startsWith('//') ? `https:${src}` : src;
+}
+
+function isWhitelistedExternal(src: string): boolean {
+  return Boolean(src) && !checkIsExternal(src) && /^https?:\/\//.test(normalizeSrc(src));
+}
+
 export default function SafeImage({
   src,
   alt,
+  referrerPolicy,
   fallbackSrc = '/placeholder-phone.svg',
   ...props
 }: SafeImageProps) {
-  const srcStr = typeof src === 'string' ? src : '';
+  const srcStr = typeof src === 'string' ? normalizeSrc(src.trim()) : '';
   const initialUseHtmlImg = checkIsExternal(srcStr);
+  const useUnoptimizedImage = isWhitelistedExternal(srcStr);
 
   const [hasError, setHasError] = useState<boolean>(false);
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
@@ -69,6 +80,7 @@ export default function SafeImage({
         src={currentSrc}
         alt={alt || 'Phone image'}
         onError={handleError}
+        referrerPolicy={referrerPolicy ?? 'no-referrer'}
         style={{
           objectFit: (props.style?.objectFit as React.CSSProperties['objectFit']) || 'cover',
           width: props.fill ? '100%' : props.width,
@@ -84,6 +96,8 @@ export default function SafeImage({
       src={currentSrc}
       alt={alt || 'Phone image'}
       onError={handleError}
+      referrerPolicy={referrerPolicy ?? 'no-referrer'}
+      unoptimized={useUnoptimizedImage}
       {...props}
     />
   );

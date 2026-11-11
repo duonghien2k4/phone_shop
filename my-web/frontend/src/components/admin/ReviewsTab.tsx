@@ -12,10 +12,12 @@ export const ReviewsTab: React.FC = () => {
   const [ratingFilter, setRatingFilter] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadReviews = async (page = 1) => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const res = await adminService.getReviews({
         page,
@@ -28,7 +30,10 @@ export const ReviewsTab: React.FC = () => {
       setReviews(items);
       setPagination(res.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 });
     } catch (err) {
-      console.error(err);
+      console.error('Lỗi tải danh sách đánh giá:', err);
+      setReviews([]);
+      setPagination({ page: 1, limit: 10, total: 0, totalPages: 1 });
+      setLoadError(err instanceof Error ? err.message : 'Không thể tải danh sách đánh giá.');
     } finally {
       setIsLoading(false);
     }
@@ -142,8 +147,17 @@ export const ReviewsTab: React.FC = () => {
                 </tr>
               ) : reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400 italic">
-                    Chưa có đánh giá nào phù hợp.
+                  <td colSpan={7} className={`py-10 text-center ${loadError ? 'text-rose-600' : 'text-slate-400 italic'}`}>
+                    {loadError ? (
+                      <div className="space-y-2">
+                        <p>Không tải được đánh giá: {loadError}</p>
+                        <Button size="sm" variant="outline" onClick={() => void loadReviews(pagination.page)}>
+                          Thử tải lại
+                        </Button>
+                      </div>
+                    ) : (
+                      'Chưa có đánh giá nào phù hợp.'
+                    )}
                   </td>
                 </tr>
               ) : (

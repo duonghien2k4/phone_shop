@@ -130,12 +130,22 @@ export default function Home() {
     }
   };
 
+  const matchesBrand = (productBrand: string, selectedBrand: string): boolean => {
+    if (selectedBrand === 'All') return true;
+
+    const normalizedProductBrand = productBrand.trim().toLowerCase();
+    const normalizedSelectedBrand = selectedBrand.trim().toLowerCase();
+
+    return normalizedProductBrand === normalizedSelectedBrand ||
+      (normalizedSelectedBrand === 'apple' && normalizedProductBrand.includes('iphone'));
+  };
+
   // Filter Logic with Smart Need Classifier
   const filteredProducts = products.filter((product) => {
     const matchesCategory = product.category === activeCategory;
-    const matchesBrand = activeBrand === 'All' || product.brand.toLowerCase() === activeBrand.toLowerCase();
+    const matchesSelectedBrand = matchesBrand(product.brand, activeBrand);
     const matchesTagOrNeed = matchesNeed(product, activeTag);
-    return matchesCategory && matchesBrand && matchesTagOrNeed;
+    return matchesCategory && matchesSelectedBrand && matchesTagOrNeed;
   });
 
   // Reset to page 1 on filter change
@@ -218,7 +228,7 @@ export default function Home() {
                   <h3 className="text-white font-extrabold">iPhone 17</h3>
                   <p className="text-white font-medium">{LABELS.HOMEPAGE.INSTALLMENT_PROMO}</p>
                   <p className="price-tag text-white font-bold">{LABELS.HOMEPAGE.PRICE_FROM}</p>
-                  <Link href="/products/iphone-17-pro-max" className="btn btn-primary btn-sm btn-full text-white">
+                  <Link href="/products/dien-thoai-iphone-17-pro-max-256gb-342679" className="btn btn-primary btn-sm btn-full text-white">
                     {LABELS.HOMEPAGE.SHOP_NOW}
                   </Link>
                 </div>

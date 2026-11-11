@@ -209,6 +209,7 @@ __decorate([
 ], AdminController.prototype, "uploadReceiptImage", null);
 __decorate([
     (0, common_1.Get)('products'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('search')),
@@ -265,6 +266,7 @@ __decorate([
 ], AdminController.prototype, "deleteVariant", null);
 __decorate([
     (0, common_1.Get)('brands'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -293,6 +295,7 @@ __decorate([
 ], AdminController.prototype, "deleteBrand", null);
 __decorate([
     (0, common_1.Get)('categories'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -420,6 +423,7 @@ __decorate([
 ], AdminController.prototype, "deleteVoucher", null);
 __decorate([
     (0, common_1.Get)('reviews'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('rating')),
@@ -429,6 +433,7 @@ __decorate([
 ], AdminController.prototype, "getReviews", null);
 __decorate([
     (0, common_1.Patch)('reviews/:id/visibility'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -437,6 +442,7 @@ __decorate([
 ], AdminController.prototype, "toggleReviewVisibility", null);
 __decorate([
     (0, common_1.Delete)('reviews/:id'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'STAFF'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

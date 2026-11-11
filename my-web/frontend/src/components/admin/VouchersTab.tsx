@@ -15,6 +15,17 @@ import {
 } from '@/components/ui/dialog';
 import { adminService } from '@/services/admin.service';
 
+interface VoucherFormData {
+  code: string;
+  description: string;
+  discountType: string;
+  discountValue: string;
+  minOrderValue: string;
+  maxDiscount: string;
+  usageLimit: string;
+  isActive: boolean;
+}
+
 export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) => {
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
@@ -23,14 +34,14 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VoucherFormData>({
     code: '',
     description: '',
     discountType: 'FIXED',
-    discountValue: 50000,
-    minOrderValue: 200000,
-    maxDiscount: 50000,
-    usageLimit: 100,
+    discountValue: '50000',
+    minOrderValue: '200000',
+    maxDiscount: '50000',
+    usageLimit: '100',
     isActive: true,
   });
 
@@ -61,10 +72,10 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
       code: '',
       description: 'Giảm giá ưu đãi đơn hàng',
       discountType: 'FIXED',
-      discountValue: 50000,
-      minOrderValue: 200000,
-      maxDiscount: 50000,
-      usageLimit: 200,
+      discountValue: '50000',
+      minOrderValue: '200000',
+      maxDiscount: '50000',
+      usageLimit: '200',
       isActive: true,
     });
     setIsModalOpen(true);
@@ -76,10 +87,10 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
       code: v.code,
       description: v.description || '',
       discountType: v.discountType,
-      discountValue: Number(v.discountValue),
-      minOrderValue: Number(v.minOrderValue),
-      maxDiscount: v.maxDiscount ? Number(v.maxDiscount) : 0,
-      usageLimit: v.usageLimit || 100,
+      discountValue: String(v.discountValue ?? ''),
+      minOrderValue: String(v.minOrderValue ?? ''),
+      maxDiscount: String(v.maxDiscount ?? ''),
+      usageLimit: String(v.usageLimit ?? ''),
       isActive: v.isActive,
     });
     setIsModalOpen(true);
@@ -88,10 +99,18 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        discountValue: Number(formData.discountValue),
+        minOrderValue: Number(formData.minOrderValue),
+        maxDiscount: Number(formData.maxDiscount),
+        usageLimit: Number(formData.usageLimit),
+      };
+
       if (editingVoucher) {
-        await adminService.updateVoucher(editingVoucher.id, formData);
+        await adminService.updateVoucher(editingVoucher.id, payload);
       } else {
-        await adminService.createVoucher(formData);
+        await adminService.createVoucher(payload);
       }
       setIsModalOpen(false);
       void loadVouchers(pagination.page);
@@ -259,7 +278,7 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
                 type="number"
                 required
                 value={formData.discountValue}
-                onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
                 className="text-xs"
               />
             </div>
@@ -268,7 +287,7 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
               <Input
                 type="number"
                 value={formData.minOrderValue}
-                onChange={(e) => setFormData({ ...formData, minOrderValue: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
                 className="text-xs"
               />
             </div>
@@ -280,7 +299,7 @@ export const VouchersTab: React.FC<{ searchQuery: string }> = ({ searchQuery }) 
               <Input
                 type="number"
                 value={formData.usageLimit}
-                onChange={(e) => setFormData({ ...formData, usageLimit: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
                 className="text-xs"
               />
             </div>

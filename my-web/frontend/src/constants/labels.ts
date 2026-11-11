@@ -205,6 +205,7 @@ export const LABELS = {
     ERROR_MISSING_ADDRESS: 'Vui lòng nhập địa chỉ và thành phố nhận hàng.',
     DEFAULT_CUSTOMER_NAME: 'Khách hàng',
     DEFAULT_PHONE: '0987654321',
+    ERROR_INVALID_PHONE: 'Số điện thoại phải bao gồm 10 chữ số.'
   },
   COMPARE: {
     TITLE: 'So sánh sản phẩm',
